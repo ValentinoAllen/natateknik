@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nata Teknik — Pusat Alat Teknik & Bangunan Bali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --fire: #FF5C00;
+            --fire-dark: #CC4900;
+            --ink: #141414;
+            --paper: #F5F2EE;
+            --mid: #8A8480;
+            --card-bg: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--paper);
+            color: var(--ink);
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── NOISE TEXTURE ─────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.4;
+        }
+
+        /* ── NAVBAR ────────────────────────────── */
+        .navbar {
+            background: rgba(245, 242, 238, 0.88);
+            backdrop-filter: blur(16px);
+            border-bottom: 2px solid var(--ink);
+        }
+
+        .nav-logo span { font-family: 'Oswald', sans-serif; letter-spacing: 0.06em; }
+        .nav-logo .accent { color: var(--fire); }
+
+        .nav-link {
+            position: relative;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--ink);
+            transition: color 0.2s;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--fire);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+        .nav-link.active { color: var(--fire); }
+
+        .btn-cta {
+            background: var(--fire);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.65rem 1.5rem;
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%);
+            transition: background 0.2s, transform 0.2s;
+        }
+        .btn-cta:hover { background: var(--fire-dark); transform: translateY(-1px); }
+
+        /* ── HERO ──────────────────────────────── */
+        .hero-wrap {
+            background-color: var(--ink);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .hero-bg-img {
+            position: absolute;
+            inset: 0;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            opacity: 0.25;
+            mix-blend-mode: luminosity;
+        }
+
+        .hero-diagonal {
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background: var(--paper);
+            clip-path: polygon(0 100%, 100% 0, 100% 100%);
+        }
+
+        .hero-tag {
+            display: inline-block;
+            background: var(--fire);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.9rem;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%);
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: clamp(3.5rem, 9vw, 8rem);
+            font-weight: 700;
+            line-height: 0.9;
+            color: white;
+            text-transform: uppercase;
+        }
+        .hero-title .fire-word { color: var(--fire); }
+
+        .hero-sub {
+            color: rgba(255,255,255,0.55);
+            font-size: 1rem;
+            max-width: 420px;
+            line-height: 1.7;
+        }
+
+        .hero-btn-primary {
+            background: var(--fire);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 1rem 2.5rem;
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%);
+            transition: background 0.2s, transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hero-btn-primary:hover { background: var(--fire-dark); transform: translateY(-2px); }
+
+        .hero-btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 1rem 2rem;
+            transition: border-color 0.2s, color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hero-btn-secondary:hover { border-color: var(--fire); color: var(--fire); }
+
+        .hero-stat-box {
+            border-top: 1px solid rgba(255,255,255,0.12);
+            padding-top: 1.5rem;
+            display: flex;
+            gap: 2.5rem;
+        }
+        .hero-stat h4 { font-family: 'Oswald', sans-serif; font-size: 2rem; color: var(--fire); }
+        .hero-stat p { font-size: 0.72rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.1em; }
+
+        .hero-badge {
+            position: absolute;
+            right: 8%;
+            top: 30%;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: var(--fire);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            animation: spin-slow 20s linear infinite;
+        }
+        .hero-badge-inner {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .hero-badge-text {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            animation: counter-spin 20s linear infinite;
+        }
+        .hero-badge-sub {
+            font-size: 0.55rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.8);
+            animation: counter-spin 20s linear infinite;
+        }
+        @keyframes counter-spin { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+
+        /* ── STRIP MARQUEE ─────────────────────── */
+        .marquee-strip {
+            background: var(--fire);
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 0.6rem 0;
+        }
+        .marquee-track {
+            display: inline-block;
+            animation: marquee 18s linear infinite;
+        }
+        .marquee-track span {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: white;
+            padding: 0 2rem;
+        }
+        .marquee-track span.dot {
+            color: rgba(255,255,255,0.5);
+            padding: 0;
+        }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* ── CATALOG SECTION ───────────────────── */
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--fire);
+            margin-bottom: 0.75rem;
+        }
+        .section-label::before {
+            content: '';
+            width: 24px;
+            height: 2px;
+            background: var(--fire);
+        }
+
+        .section-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1;
+            color: var(--ink);
+        }
+
+        /* Filter pills */
+        .filter-pill {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.5rem 1.2rem;
+            border: 2px solid #D6D1CC;
+            color: var(--mid);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%);
+        }
+        .filter-pill:hover { border-color: var(--fire); color: var(--fire); }
+        .filter-pill.active {
+            background: var(--fire);
+            border-color: var(--fire);
+            color: white;
+        }
+
+        /* Product Card */
+        .product-card {
+            background: var(--card-bg);
+            border: 2px solid #E8E4DF;
+            transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+            overflow: hidden;
+        }
+        .product-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px;
+            height: 0;
+            background: var(--fire);
+            transition: height 0.35s ease;
+            z-index: 1;
+        }
+        .product-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(20,20,20,0.12); border-color: #C8C4BF; }
+        .product-card:hover::before { height: 100%; }
+
+        .product-img-wrap {
+            overflow: hidden;
+            background: #F0ECE8;
+            height: 220px;
+            position: relative;
+        }
+        .product-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+        .product-card:hover .product-img-wrap img { transform: scale(1.08); }
+
+        .product-brand {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--fire);
+        }
+        .product-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: var(--ink);
+            line-height: 1.3;
+        }
+        .product-price {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .product-btn {
+            background: var(--ink);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.75rem 1.2rem;
+            width: 100%;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%);
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        .product-btn:hover { background: var(--fire); }
+
+        /* ── FEATURES ──────────────────────────── */
+        .feature-card {
+            border: 2px solid #E8E4DF;
+            background: white;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .feature-card:hover { border-color: var(--fire); }
+        .feature-icon {
+            width: 52px; height: 52px;
+            background: var(--fire);
+            display: flex; align-items: center; justify-content: center;
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%);
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── FOOTER ────────────────────────────── */
+        .footer-wrap {
+            background: var(--ink);
+            color: rgba(255,255,255,0.5);
+            border-top: 4px solid var(--fire);
+        }
+        .footer-title { font-family: 'Oswald', sans-serif; font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--fire); margin-bottom: 1rem; }
+        .footer-link { font-size: 0.85rem; color: rgba(255,255,255,0.55); transition: color 0.2s; display: block; margin-bottom: 0.5rem; }
+        .footer-link:hover { color: var(--fire); }
+
+        /* ── LOADING ───────────────────────────── */
+        .loading-dots span {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--fire);
+            margin: 0 3px;
+            animation: bounce-dot 1.2s ease infinite;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce-dot { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+        /* ── MOBILE MENU ───────────────────────── */
+        #mobileMenu { background: var(--ink); }
+    </style>
+</head>
+<body>
+
+<!-- ════════ NAVBAR ════════ -->
+<nav class="navbar sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-[70px]">
+        <!-- Logo -->
+        <a href="#" class="nav-logo flex items-center gap-2.5">
+            <div style="width:36px;height:36px;background:var(--fire);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,8px 100%);display:flex;align-items:center;justify-content:center">
+                <i class="fas fa-tools text-white text-sm"></i>
+            </div>
+            <span style="font-family:Oswald,sans-serif;font-size:1.15rem;letter-spacing:0.08em;font-weight:600;color:var(--ink)">NATA<span class="accent">TEKNIK</span></span>
+        </a>
+
+        <!-- Desktop Nav -->
+        <div class="hidden lg:flex items-center gap-10">
+            <a href="#" class="nav-link active">Beranda</a>
+            <a href="#katalog" class="nav-link">Katalog</a>
+            <a href="#kontak" class="nav-link">Kontak</a>
+            <a href="https://wa.me/6282277775595" target="_blank" class="btn-cta">
+                <i class="fab fa-whatsapp"></i> Hubungi Kami
+            </a>
+        </div>
+
+        <!-- Hamburger -->
+        <button id="mobileMenuBtn" class="lg:hidden p-2" aria-label="Menu">
+            <i id="mobileMenuIcon" class="fas fa-bars text-xl" style="color:var(--ink)"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="hidden lg:hidden">
+        <div class="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-2">
+            <a href="#" style="color:var(--fire);font-family:Oswald,sans-serif;letter-spacing:0.1em;font-size:0.9rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.08);text-transform:uppercase">Beranda</a>
+            <a href="#katalog" onclick="closeMobileMenu()" style="color:rgba(255,255,255,0.6);font-family:Oswald,sans-serif;letter-spacing:0.1em;font-size:0.9rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.08);text-transform:uppercase">Katalog</a>
+            <a href="#kontak" onclick="closeMobileMenu()" style="color:rgba(255,255,255,0.6);font-family:Oswald,sans-serif;letter-spacing:0.1em;font-size:0.9rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.08);text-transform:uppercase">Kontak</a>
+            <a href="https://wa.me/6282277775595" target="_blank" class="btn-cta mt-4 text-center">
+                <i class="fab fa-whatsapp"></i> Hubungi Kami
+            </a>
+        </div>
+    </div>
+</nav>
+
+<script>
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileMenuIcon = document.getElementById('mobileMenuIcon');
+    mobileMenuBtn.addEventListener('click', () => {
+        const isOpen = !mobileMenu.classList.contains('hidden');
+        mobileMenu.classList.toggle('hidden', isOpen);
+        mobileMenuIcon.className = isOpen ? 'fas fa-bars text-xl' : 'fas fa-times text-xl';
+        mobileMenuIcon.style.color = 'var(--ink)';
+    });
+    function closeMobileMenu() {
+        mobileMenu.classList.add('hidden');
+        mobileMenuIcon.className = 'fas fa-bars text-xl';
+        mobileMenuIcon.style.color = 'var(--ink)';
+    }
+</script>
+
+<!-- ════════ HERO ════════ -->
+<section class="hero-wrap">
+    <img src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&q=80&w=2000" alt="Workshop" class="hero-bg-img">
+
+    <!-- Decorative lines -->
+    <div style="position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(to bottom,transparent,rgba(255,93,0,0.4),transparent)"></div>
+    <div style="position:absolute;top:0;right:80px;width:1px;height:100%;background:linear-gradient(to bottom,transparent,rgba(255,255,255,0.06),transparent)"></div>
+
+    <!-- Badge -->
+    <div class="hero-badge hidden lg:flex">
+        <svg viewBox="0 0 140 140" style="position:absolute;width:100%;height:100%">
+            <path id="textCircle" d="M 70,70 m -55,0 a 55,55 0 1,1 110,0 a 55,55 0 1,1 -110,0" fill="none"/>
+            <text font-family="Oswald" font-size="11" fill="white" letter-spacing="4">
+                <textPath href="#textCircle">TERPERCAYA • BALI • DENPASAR • ALAT TEKNIK •</textPath>
+            </text>
+        </svg>
+        <div class="hero-badge-inner">
+            <div class="hero-badge-text">4.5</div>
+            <div class="hero-badge-sub">★ Rating</div>
+        </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-32 pt-24">
+        <div class="max-w-3xl">
+            <div class="hero-tag">Pusat Alat Teknik Terpercaya — Bali</div>
+            <h1 class="hero-title mb-6">
+                Nata<br>
+                <span class="fire-word">Teknik</span><br>
+                <span style="font-size:0.45em;color:rgba(255,255,255,0.45);letter-spacing:0.06em">Denpasar, Bali</span>
+            </h1>
+            <p class="hero-sub mb-10">Menyediakan peralatan teknik, mesin industri, dan perlengkapan bangunan berkualitas tinggi — untuk proyek besar maupun kebutuhan rumah tangga.</p>
+            <div class="flex flex-wrap gap-4 mb-12">
+                <a href="#katalog" class="hero-btn-primary">
+                    <i class="fas fa-th-large text-sm"></i> Lihat Katalog
+                </a>
+                <a href="https://share.google/MMTvxSde4C6QMwfPH" target="_blank" rel="noopener" class="hero-btn-secondary">
+                    <i class="fas fa-map-marker-alt text-sm"></i> Lokasi Toko
+                </a>
+            </div>
+            <div class="hero-stat-box">
+                <div class="hero-stat">
+                    <h4>77+</h4>
+                    <p>Ulasan Positif</p>
+                </div>
+                <div class="hero-stat">
+                    <h4>4.5★</h4>
+                    <p>Rating Toko</p>
+                </div>
+                <div class="hero-stat">
+                    <h4>100%</h4>
+                    <p>Produk Original</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hero-diagonal"></div>
+</section>
+
+<!-- ════════ MARQUEE STRIP ════════ -->
+<div class="marquee-strip">
+    <div class="marquee-track">
+        <span>Peralatan Berkualitas Tinggi</span><span class="dot">◆</span>
+        <span>Pengiriman Cepat Bali</span><span class="dot">◆</span>
+        <span>Mesin Industri Terbaik</span><span class="dot">◆</span>
+        <span>Perlengkapan Bangunan</span><span class="dot">◆</span>
+        <span>Servis Terpercaya</span><span class="dot">◆</span>
+        <span>Nata Teknik Denpasar</span><span class="dot">◆</span>
+        <span>Peralatan Berkualitas Tinggi</span><span class="dot">◆</span>
+        <span>Pengiriman Cepat Bali</span><span class="dot">◆</span>
+        <span>Mesin Industri Terbaik</span><span class="dot">◆</span>
+        <span>Perlengkapan Bangunan</span><span class="dot">◆</span>
+        <span>Servis Terpercaya</span><span class="dot">◆</span>
+        <span>Nata Teknik Denpasar</span><span class="dot">◆</span>
+    </div>
+</div>
+
+<!-- ════════ FEATURES BAR ════════ -->
+<div style="background:#FFFFFF;border-bottom:2px solid #E8E4DF">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#E8E4DF]">
+            <div class="flex items-center gap-3 py-5 px-6">
+                <i class="fas fa-certificate" style="color:var(--fire);font-size:1.1rem"></i>
+                <span style="font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink)">Produk Original</span>
+            </div>
+            <div class="flex items-center gap-3 py-5 px-6">
+                <i class="fas fa-motorcycle" style="color:var(--fire);font-size:1.1rem"></i>
+                <span style="font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink)">Antar Cepat Bali</span>
+            </div>
+            <div class="flex items-center gap-3 py-5 px-6">
+                <i class="fab fa-whatsapp" style="color:var(--fire);font-size:1.1rem"></i>
+                <span style="font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink)">Konsultasi WA</span>
+            </div>
+            <div class="flex items-center gap-3 py-5 px-6">
+                <i class="fas fa-tools" style="color:var(--fire);font-size:1.1rem"></i>
+                <span style="font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink)">Stok Lengkap</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════ CATALOG SECTION ════════ -->
+<section id="katalog" class="py-20 lg:py-28">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14">
+            <div>
+                <div class="section-label">Katalog Live</div>
+                <h2 class="section-title">Produk Tersedia</h2>
+                <p style="color:var(--mid);font-size:0.9rem;margin-top:0.5rem">Diperbarui langsung dari cloud database</p>
+            </div>
+
+            <!-- Brand Filters -->
+            <div class="flex flex-wrap gap-2" id="brandFilters">
+                <button data-brand="all" class="filter-pill active">Semua</button>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <div id="productContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[400px]">
+            <div id="loadingIndicator" class="col-span-full flex flex-col items-center justify-center py-24">
+                <div class="loading-dots mb-4"><span></span><span></span><span></span></div>
+                <p style="font-family:Oswald,sans-serif;font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--mid)">Menghubungkan ke database...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════ WHY US ════════ -->
+<section style="background:var(--ink);padding:5rem 0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+                <div style="display:inline-flex;align-items:center;gap:0.5rem;font-size:0.72rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--fire);margin-bottom:0.75rem">
+                    <span style="width:24px;height:2px;background:var(--fire);display:inline-block"></span>
+                    Mengapa Kami
+                </div>
+                <h2 style="font-family:Oswald,sans-serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;text-transform:uppercase;color:white;line-height:1;margin-bottom:1.5rem">Pilihan Utama<br><span style="color:var(--fire)">Para Profesional</span><br>Di Bali</h2>
+                <p style="color:rgba(255,255,255,0.5);line-height:1.8;font-size:0.9rem">Kami bukan sekadar toko alat. Kami adalah mitra kerja Anda — memastikan setiap proyek berjalan lancar dengan peralatan yang tepat dan layanan yang cepat.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                    <h3 style="font-family:Oswald,sans-serif;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Garansi Produk</h3>
+                    <p style="font-size:0.82rem;color:var(--mid);line-height:1.6">Semua produk bergaransi resmi pabrikan dengan layanan klaim mudah.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-tags"></i></div>
+                    <h3 style="font-family:Oswald,sans-serif;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Harga Kompetitif</h3>
+                    <p style="font-size:0.82rem;color:var(--mid);line-height:1.6">Harga terbaik langsung dari distributor resmi tanpa biaya tambahan.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-comment-dots"></i></div>
+                    <h3 style="font-family:Oswald,sans-serif;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Konsultasi Gratis</h3>
+                    <p style="font-size:0.82rem;color:var(--mid);line-height:1.6">Tim ahli kami siap membantu memilih alat yang paling sesuai kebutuhan.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-boxes"></i></div>
+                    <h3 style="font-family:Oswald,sans-serif;font-size:1rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Stok Selalu Lengkap</h3>
+                    <p style="font-size:0.82rem;color:var(--mid);line-height:1.6">Ribuan jenis alat tersedia — dari skala rumahan hingga industri besar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════ FOOTER ════════ -->
+<footer id="kontak" class="footer-wrap pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
+
+            <!-- Brand -->
+            <div class="lg:col-span-1">
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem">
+                    <div style="width:34px;height:34px;background:var(--fire);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,8px 100%);display:flex;align-items:center;justify-content:center">
+                        <i class="fas fa-tools text-white text-xs"></i>
+                    </div>
+                    <span style="font-family:Oswald,sans-serif;font-size:1.1rem;font-weight:600;letter-spacing:0.08em;color:white">NATA<span style="color:var(--fire)">TEKNIK</span></span>
+                </div>
+                <p style="font-size:0.82rem;line-height:1.8;opacity:0.6">Penyedia alat teknik, mesin industri, dan perlengkapan bangunan terbaik di Bali.</p>
+                <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+                    <a href="https://wa.me/6282277775595" target="_blank" style="width:36px;height:36px;border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);transition:all 0.2s;font-size:0.9rem" onmouseover="this.style.borderColor='var(--fire)';this.style.color='var(--fire)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.color='rgba(255,255,255,0.5)'">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="#" style="width:36px;height:36px;border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);transition:all 0.2s;font-size:0.9rem" onmouseover="this.style.borderColor='var(--fire)';this.style.color='var(--fire)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.color='rgba(255,255,255,0.5)'">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Links -->
+            <div>
+                <div class="footer-title">Navigasi</div>
+                <a href="#" class="footer-link">Beranda</a>
+                <a href="#katalog" class="footer-link">Katalog Produk</a>
+                <a href="#kontak" class="footer-link">Kontak</a>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <div class="footer-title">Kontak</div>
+                <div style="display:flex;flex-direction:column;gap:0.75rem">
+                    <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                        <i class="fas fa-map-marker-alt" style="color:var(--fire);margin-top:3px;font-size:0.8rem"></i>
+                        <span style="font-size:0.82rem;line-height:1.7">Jl. Gunung Salak Utara No.88 Block B-C-D, Denpasar, Bali</span>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;align-items:center">
+                        <i class="fab fa-whatsapp" style="color:var(--fire);font-size:0.8rem"></i>
+                        <a href="https://wa.me/6282277775595" class="footer-link" style="margin:0">0822-7777-5595</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hours -->
+            <div>
+                <div class="footer-title">Jam Operasional</div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem">
+                    <div style="display:flex;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)">
+                        <span>Senin – Sabtu</span>
+                        <span style="color:white">08:00 – 17:00</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span>Minggu</span>
+                        <span style="color:var(--fire)">Tutup</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+            <p style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;opacity:0.35">&copy; 2025 Nata Teknik — All Rights Reserved</p>
+            <div style="display:flex;gap:1rem;opacity:0.35">
+                <i class="fab fa-cc-visa text-2xl"></i>
+                <i class="fab fa-cc-mastercard text-2xl"></i>
+                <i class="fas fa-university text-xl"></i>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- ════════ SUPABASE SCRIPT ════════ -->
+<script>
+    const SB_URL = "https://vuxnsqyeobtxfynuvcyh.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1eG5zcXllb2J0eGZ5bnV2Y3loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDM0ODAsImV4cCI6MjA4NzY3OTQ4MH0.vL8OmoLAmgo_a5chnkCbS_DY-JYiYbYy8PZANUA38fc";
+
+    let supabaseClient;
+    let allProducts = [];
+
+    async function initSupabase() {
+        try {
+            supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+            await fetchProducts();
+        } catch (error) {
+            showErrorMessage("Gagal menginisialisasi database.");
+        }
+    }
+
+    async function fetchProducts() {
+        const { data, error } = await supabaseClient
+            .from('products').select('*').order('id', { ascending: false });
+        if (error) { showErrorMessage("Kesalahan: " + error.message); return; }
+        allProducts = data || [];
+        renderProducts(allProducts);
+        renderFilters(allProducts);
+    }
+
+    function showErrorMessage(message) {
+        document.getElementById('productContainer').innerHTML = `
+            <div class="col-span-full text-center py-20">
+                <div style="width:52px;height:52px;background:#FFF0EC;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 100%,10px 100%)">
+                    <i class="fas fa-exclamation-triangle" style="color:var(--fire)"></i>
+                </div>
+                <h3 style="font-family:Oswald,sans-serif;font-size:1.1rem;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.5rem">Gagal Memuat Data</h3>
+                <p style="font-size:0.82rem;color:var(--mid)">${message}</p>
+                <button onclick="fetchProducts()" style="margin-top:1rem;background:var(--fire);color:white;font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.6rem 1.5rem;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,8px 100%)">Coba Lagi</button>
+            </div>`;
+    }
+
+    function renderFilters(items) {
+        const fc = document.getElementById('brandFilters');
+        const brands = [...new Set(items.map(i => i.brand))].sort();
+        fc.innerHTML = `<button data-brand="all" class="filter-pill active">Semua</button>`;
+        brands.forEach(b => {
+            if (b) fc.insertAdjacentHTML('beforeend',
+                `<button data-brand="${b}" class="filter-pill">${b}</button>`);
+        });
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const sel = btn.dataset.brand;
+                renderProducts(sel === 'all' ? allProducts : allProducts.filter(p => p.brand === sel));
+            };
+        });
+    }
+
+    function renderProducts(items) {
+        const c = document.getElementById('productContainer');
+        c.innerHTML = '';
+        if (!items.length) {
+            c.innerHTML = `<div class="col-span-full text-center py-20" style="font-family:Oswald,sans-serif;font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--mid)">Belum ada produk tersedia</div>`;
+            return;
+        }
+        items.forEach(p => {
+            c.insertAdjacentHTML('beforeend', `
+                <div class="product-card">
+                    <div class="product-img-wrap">
+                        <img src="${p.image}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                    </div>
+                    <div style="padding:1.25rem 1.5rem 1.5rem">
+                        <div class="product-brand">${p.brand}</div>
+                        <h3 class="product-name mt-1 mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}</h3>
+                        <div class="product-price mb-4">${p.price}</div>
+                        <button onclick="orderWA('${p.name}')" class="product-btn">
+                            <i class="fab fa-whatsapp"></i> Pesan Sekarang
+                        </button>
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    window.orderWA = (name) => {
+        const msg = encodeURIComponent(`Halo Nata Teknik, saya ingin menanyakan stok ${name}. Apakah tersedia? Terima kasih.`);
+        window.open(`https://wa.me/6282277775595?text=${msg}`, '_blank');
+    };
+
+    initSupabase();
+</script>
+</body>
+</html>
