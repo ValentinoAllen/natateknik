@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Nata Teknik</title>
+    <meta name="description" content="Panel admin Nata Teknik — kelola produk, merk, dan pengaturan toko.">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --fire: #FF5C00;
+            --fire-dim: rgba(255, 92, 0, 0.15);
+            --fire-dark: #CC4900;
+            --sidebar-bg: #0D0D0D;
+            --sidebar-border: #1F1F1F;
+            --body-bg: #111111;
+            --card-bg: #181818;
+            --card-border: #262626;
+            --text-primary: #F0EDE8;
+            --text-muted: #6B6560;
+            --text-dim: #4A4540;
+            --green: #22c55e;
+            --red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--body-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        .display {
+            font-family: 'Oswald', sans-serif;
+            letter-spacing: 0.03em;
+        }
+
+        /* NOISE */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.3;
+        }
+
+        /* LOGIN */
+        #loginOverlay {
+            background: var(--sidebar-bg);
+            transition: opacity 0.5s ease-out;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-top: 3px solid var(--fire);
+        }
+
+        .login-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--fire);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%);
+            margin: 0 auto 1.25rem;
+            font-size: 1.4rem;
+        }
+
+        /* FORMS */
+        .form-input {
+            width: 100%;
+            background: #111;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 0.9rem 1rem;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--fire);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .form-select {
+            width: 100%;
+            background: #111;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 0.9rem 1rem;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6560' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+        }
+
+        .form-select:focus {
+            border-color: var(--fire);
+        }
+
+        .form-select option {
+            background: #1a1a1a;
+        }
+
+        .form-label {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 0.4rem;
+        }
+
+        /* BUTTONS */
+        .btn-fire {
+            background: var(--fire);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.9rem 1.5rem;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%);
+            transition: background 0.2s, transform 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-fire:hover {
+            background: var(--fire-dark);
+        }
+
+        .btn-fire:active {
+            transform: scale(0.98);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--fire);
+            color: var(--fire);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.85rem 1.5rem;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            cursor: pointer;
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.22);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        /* SIDEBAR */
+        #sidebar {
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            width: 240px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .sidebar-logo .fire {
+            color: var(--fire);
+        }
+
+        .sidebar-section {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+            margin-top: 1.25rem;
+        }
+
+        .sidebar-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 1.5rem;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            position: relative;
+        }
+
+        .sidebar-btn::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 60%;
+            background: var(--fire);
+            border-radius: 0 2px 2px 0;
+            transition: width 0.2s;
+        }
+
+        .sidebar-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .sidebar-btn.active {
+            color: var(--fire);
+            background: var(--fire-dim);
+        }
+
+        .sidebar-btn.active::before {
+            width: 3px;
+        }
+
+        .sidebar-btn i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .sidebar-user {
+            background: #161616;
+            border: 1px solid var(--sidebar-border);
+            padding: 0.75rem 1rem;
+        }
+
+        /* MOBILE TOPBAR */
+        #mobileTopbar {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 80;
+            background: var(--sidebar-bg);
+            border-bottom: 2px solid var(--fire);
+            height: 54px;
+            align-items: center;
+            padding: 0 1rem;
+            gap: 0.75rem;
+        }
+
+        #sidebarToggle {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        #sidebarToggle:hover {
+            border-color: var(--fire);
+            color: var(--fire);
+        }
+
+        /* SIDEBAR BACKDROP */
+        #sidebarBackdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 89;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(2px);
+        }
+
+        #sidebarBackdrop.open {
+            display: block;
+        }
+
+        /* MOBILE */
+        @media (max-width: 767px) {
+            #mobileTopbar {
+                display: flex;
+            }
+
+            #dashboardContent {
+                display: block !important;
+                padding-top: 54px;
+            }
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 90;
+                width: 240px;
+                height: 100vh;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            #sidebar.open {
+                transform: translateX(0);
+            }
+
+            main {
+                height: auto !important;
+                padding: 1.25rem !important;
+            }
+
+            .page-title {
+                font-size: 1.5rem !important;
+            }
+
+            .stat-value {
+                font-size: 1.5rem !important;
+            }
+        }
+
+        /* STAT CARDS */
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-left: 3px solid var(--fire);
+            padding: 1.5rem;
+            transition: box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 0 0 1px var(--fire);
+        }
+
+        .stat-icon {
+            width: 46px;
+            height: 46px;
+            background: var(--fire-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--fire);
+            font-size: 1rem;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%);
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-label {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* INFO BANNER */
+        .info-banner {
+            background: linear-gradient(135deg, #0D0D0D 0%, #161616 100%);
+            border: 1px solid var(--card-border);
+            border-left: 4px solid var(--fire);
+            padding: 2rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-banner::after {
+            content: '\f07a';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: -1rem;
+            bottom: -2rem;
+            font-size: 8rem;
+            color: rgba(255, 92, 0, 0.06);
+            pointer-events: none;
+        }
+
+        /* TABLE */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead tr {
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .data-table thead th {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0.9rem 1rem;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.15s;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .data-table td {
+            padding: 0.85rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .badge-brand {
+            background: var(--fire-dim);
+            color: var(--fire);
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 0.2rem 0.6rem;
+            display: inline-block;
+            clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 100%, 6px 100%);
+        }
+
+        .table-action {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+            padding: 0.3rem 0.5rem;
+        }
+
+        /* BRAND CARDS */
+        .brand-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .brand-card:hover {
+            border-color: #383838;
+        }
+
+        .brand-count-badge {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            padding: 0.15rem 0.6rem;
+            letter-spacing: 0.1em;
+        }
+
+        .brand-delete-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            padding: 0.3rem 0.5rem;
+            transition: color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .brand-delete-btn:hover {
+            color: #f87171;
+        }
+
+        .brand-delete-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .brand-delete-btn:disabled:hover {
+            color: var(--text-dim);
+        }
+
+        /* FILTER PILLS */
+        .filter-pill {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.4rem 0.9rem;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 100%, 6px 100%);
+        }
+
+        .filter-pill:hover {
+            border-color: var(--fire);
+            color: var(--fire);
+        }
+
+        .filter-pill.active {
+            background: var(--fire);
+            border-color: var(--fire);
+            color: white;
+        }
+
+        /* MODALS */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-top: 3px solid var(--fire);
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .modal-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--card-border);
+            background: rgba(255, 255, 255, 0.02);
+            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--fire);
+        }
+
+        /* CONFIRM MODAL */
+        #confirmModal .confirm-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-top: 3px solid #ef4444;
+            width: 100%;
+            max-width: 380px;
+            padding: 2rem;
+        }
+
+        #confirmModal .confirm-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(239, 68, 68, 0.12);
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 10px 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f87171;
+            font-size: 1.2rem;
+            margin: 0 auto 1.25rem;
+        }
+
+        /* TOAST */
+        #toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9998;
+            transform: translateY(6rem);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+        }
+
+        .toast-inner {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 0.85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 260px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* SETTINGS */
+        .settings-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+
+        .settings-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--fire-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%);
+            color: var(--fire);
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        /* VIEWS */
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        .page-eyebrow {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--fire);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-sub {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOAST -->
+    <div id="toast">
+        <div class="toast-inner">
+            <div class="toast-dot" id="toastDot"></div>
+            <span id="toastMsg" style="font-size:0.85rem;color:var(--text-primary)"></span>
+        </div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirmModal" class="modal-overlay hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div class="confirm-card">
+            <div class="confirm-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 style="font-family:Oswald,sans-serif;font-size:1.1rem;text-transform:uppercase;text-align:center;margin-bottom:0.75rem"
+                id="confirmTitle">Konfirmasi Hapus</h3>
+            <p id="confirmMsg"
+                style="font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.6;margin-bottom:1.75rem">
+                Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan.</p>
+            <div style="display:flex;gap:0.75rem">
+                <button id="confirmCancel" class="btn-ghost" style="flex:1">Batal</button>
+                <button id="confirmOk" class="btn-danger" style="flex:1"><i class="fas fa-trash-alt"></i> Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginOverlay" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="login-card w-full max-w-md p-8">
+            <div class="login-icon"><i class="fas fa-lock"></i></div>
+            <h1 class="display text-center mb-1"
+                style="font-size:1.4rem;text-transform:uppercase;letter-spacing:0.08em">Admin Panel</h1>
+            <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;margin-bottom:2rem">Masuk dengan akun
+                admin Supabase Anda</p>
+            <form id="loginForm" style="display:flex;flex-direction:column;gap:1rem">
+                <div>
+                    <label class="form-label">Email Admin</label>
+                    <input type="email" id="adminEmail" required autocomplete="email" class="form-input"
+                        placeholder="admin@natateknik.com">
+                </div>
+                <div>
+                    <label class="form-label">Kata Sandi</label>
+                    <input type="password" id="adminPass" required autocomplete="current-password" class="form-input"
+                        placeholder="••••••••">
+                </div>
+                <p id="loginError" class="hidden"
+                    style="font-size:0.78rem;color:#f87171;text-align:center;font-weight:600;margin-top:0.25rem"></p>
+                <button type="submit" id="loginBtn" class="btn-fire" style="margin-top:0.5rem">
+                    <span>Masuk Dashboard</span>
+                    <i id="loginLoader" class="fas fa-circle-notch fa-spin hidden"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MOBILE TOPBAR -->
+    <div id="mobileTopbar">
+        <button id="sidebarToggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars" id="sidebarToggleIcon"></i>
+        </button>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+            <div
+                style="width:26px;height:26px;background:var(--fire);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 100%,6px 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="fas fa-tools text-white" style="font-size:0.6rem"></i>
+            </div>
+            <span
+                style="font-family:Oswald,sans-serif;font-size:0.95rem;letter-spacing:0.08em;font-weight:600;color:var(--text-primary)">NATA<span
+                    style="color:var(--fire)">ADMIN</span></span>
+        </div>
+    </div>
+
+    <!-- SIDEBAR BACKDROP -->
+    <div id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboardContent" class="flex min-h-screen opacity-0 transition-opacity duration-700 pointer-events-none">
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="flex flex-col py-6 h-screen sticky top-0 overflow-y-auto">
+            <div style="padding:0 1.5rem;margin-bottom:2rem;display:flex;align-items:center;gap:0.75rem">
+                <div
+                    style="width:32px;height:32px;background:var(--fire);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 100%,8px 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <i class="fas fa-tools text-white" style="font-size:0.75rem"></i>
+                </div>
+                <span class="sidebar-logo">NATA<span class="fire">ADMIN</span></span>
+            </div>
+            <nav style="flex:1">
+                <div class="sidebar-section">Dashboard</div>
+                <button data-view="dashboard" class="sidebar-btn active"><i class="fas fa-chart-pie"></i>
+                    Ringkasan</button>
+                <div class="sidebar-section">Manajemen</div>
+                <button data-view="products" class="sidebar-btn"><i class="fas fa-box"></i> Kelola Produk</button>
+                <button data-view="brands" class="sidebar-btn"><i class="fas fa-tags"></i> Manajemen Merk</button>
+                <div class="sidebar-section">Sistem</div>
+                <button data-view="settings" class="sidebar-btn"><i class="fas fa-cog"></i> Pengaturan Toko</button>
+            </nav>
+            <div style="padding:0 1rem;margin-bottom:0.75rem">
+                <div class="sidebar-user">
+                    <p
+                        style="font-family:Oswald,sans-serif;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.3rem">
+                        Login Sebagai</p>
+                    <p id="adminEmailDisplay"
+                        style="font-size:0.8rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                        —</p>
+                </div>
+            </div>
+            <button id="logoutBtn" class="sidebar-btn" style="color:#f87171"><i class="fas fa-sign-out-alt"></i>
+                Keluar</button>
+        </aside>
+
+        <!-- MAIN -->
+        <main style="flex:1;overflow-y:auto;padding:2.5rem 3rem;height:100vh;background:var(--body-bg)">
+
+            <!-- ═══ DASHBOARD ═══ -->
+            <section id="dashboard" class="view-section active">
+                <div style="margin-bottom:2.5rem">
+                    <div class="page-eyebrow">Dashboard</div>
+                    <h2 class="page-title">Halo, Admin 👋</h2>
+                    <p class="page-sub">Database terhubung ke Supabase Cloud secara aman.</p>
+                </div>
+                <div
+                    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-cubes"></i></div>
+                        <div class="stat-label">Total Produk</div>
+                        <div class="stat-value" id="statTotal">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-tags"></i></div>
+                        <div class="stat-label">Total Merk</div>
+                        <div class="stat-value" id="statBrands">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-star"></i></div>
+                        <div class="stat-label">Rating Toko</div>
+                        <div class="stat-value">4.5</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-comment-dots"></i></div>
+                        <div class="stat-label">Total Ulasan</div>
+                        <div class="stat-value">77</div>
+                    </div>
+                </div>
+                <div class="info-banner">
+                    <div class="page-eyebrow" style="margin-bottom:0.75rem">Info Toko</div>
+                    <h3
+                        style="font-family:Oswald,sans-serif;font-size:1.25rem;text-transform:uppercase;margin-bottom:1rem">
+                        Informasi Resmi Nata Teknik</h3>
+                    <div style="display:flex;flex-direction:column;gap:0.6rem">
+                        <p
+                            style="display:flex;align-items:flex-start;gap:0.75rem;font-size:0.85rem;color:rgba(255,255,255,0.6)">
+                            <i class="fas fa-map-marker-alt" style="color:var(--fire);margin-top:3px;flex-shrink:0"></i>
+                            <span id="displayAddress">Jl. Gunung Salak Utara No.88 Block B-C-D, Denpasar</span>
+                        </p>
+                        <p
+                            style="display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;color:rgba(255,255,255,0.6)">
+                            <i class="fas fa-phone-alt" style="color:var(--fire);flex-shrink:0"></i>
+                            <span id="displayWA">0822-7777-5595</span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ PRODUCTS ═══ -->
+            <section id="products" class="view-section">
+                <div
+                    style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+                    <div>
+                        <div class="page-eyebrow">Manajemen</div>
+                        <h2 class="page-title">Kelola Katalog</h2>
+                        <p class="page-sub">Data tersinkronisasi langsung dengan website utama.</p>
+                    </div>
+                    <button onclick="openProductModal()" class="btn-fire" style="width:auto;padding:0.75rem 1.75rem">
+                        <i class="fas fa-plus"></i> Tambah Produk
+                    </button>
+                </div>
+
+                <!-- Search + Filter -->
+                <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;margin-bottom:1rem">
+                    <div style="position:relative;flex:0 0 280px">
+                        <i class="fas fa-search"
+                            style="position:absolute;left:0.9rem;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.8rem;pointer-events:none"></i>
+                        <input type="text" id="searchInput" placeholder="Cari produk atau merk…" class="form-input"
+                            style="padding-left:2.5rem" oninput="applyProductFilters()">
+                    </div>
+                    <div id="productBrandFilter" style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                        <button class="filter-pill active" data-brand="all"
+                            onclick="selectBrandFilter(this)">Semua</button>
+                    </div>
+                </div>
+
+                <p id="productCount" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem"></p>
+
+                <!-- Table -->
+                <div style="background:var(--card-bg);border:1px solid var(--card-border);overflow:hidden">
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px">Foto</th>
+                                    <th>Nama Produk</th>
+                                    <th>Merk</th>
+                                    <th>Harga</th>
+                                    <th style="width:90px;text-align:right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align:center;padding:3rem;color:var(--text-muted)">
+                                        <i class="fas fa-circle-notch fa-spin"
+                                            style="color:var(--fire);font-size:1.5rem"></i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ BRANDS ═══ -->
+            <section id="brands" class="view-section">
+                <div
+                    style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:2rem;flex-wrap:wrap;gap:1.5rem">
+                    <div>
+                        <div class="page-eyebrow">Manajemen</div>
+                        <h2 class="page-title">Manajemen Merk</h2>
+                        <p class="page-sub">Merk tersedia sebagai opsi pilihan saat menambah produk.</p>
+                    </div>
+                    <!-- Add brand inline -->
+                    <div style="display:flex;gap:0.5rem;align-items:flex-end">
+                        <div>
+                            <label class="form-label">Nama Merk Baru</label>
+                            <input type="text" id="newBrandInput" class="form-input" placeholder="Contoh: Makita"
+                                style="width:220px"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();addBrand()}">
+                        </div>
+                        <button onclick="addBrand()" class="btn-fire"
+                            style="width:auto;padding:0.9rem 1.5rem;flex-shrink:0">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats bar -->
+                <div
+                    style="background:var(--card-bg);border:1px solid var(--card-border);border-left:3px solid var(--fire);padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:1.5rem">
+                    <div>
+                        <div class="stat-label">Total Merk</div>
+                        <div style="font-family:Oswald,sans-serif;font-size:1.5rem;font-weight:700;color:var(--fire)"
+                            id="brandStatTotal">—</div>
+                    </div>
+                    <div style="width:1px;height:36px;background:var(--card-border)"></div>
+                    <div>
+                        <div class="stat-label">Total Produk</div>
+                        <div style="font-family:Oswald,sans-serif;font-size:1.5rem;font-weight:700"
+                            id="brandStatProducts">—</div>
+                    </div>
+                    <div
+                        style="margin-left:auto;font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem">
+                        <i class="fas fa-info-circle" style="color:var(--fire)"></i>
+                        Merk yang masih dipakai produk tidak bisa dihapus
+                    </div>
+                </div>
+
+                <!-- Brand search -->
+                <div style="position:relative;margin-bottom:1rem;max-width:280px">
+                    <i class="fas fa-search"
+                        style="position:absolute;left:0.9rem;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.8rem;pointer-events:none"></i>
+                    <input type="text" id="brandSearchInput" placeholder="Cari merk…" class="form-input"
+                        style="padding-left:2.5rem" oninput="renderBrandsList()">
+                </div>
+
+                <!-- Brands grid -->
+                <div id="brandsListContainer"
+                    style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem">
+                    <div style="text-align:center;padding:3rem;color:var(--text-muted);grid-column:1/-1">
+                        <i class="fas fa-circle-notch fa-spin" style="color:var(--fire);font-size:1.5rem"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ SETTINGS ═══ -->
+            <section id="settings" class="view-section">
+                <div style="margin-bottom:2rem">
+                    <div class="page-eyebrow">Konfigurasi</div>
+                    <h2 class="page-title">Pengaturan Toko</h2>
+                    <p class="page-sub">Informasi yang ditampilkan di website utama.</p>
+                </div>
+                <div style="background:var(--card-bg);border:1px solid var(--card-border);padding:2rem">
+                    <div class="settings-row">
+                        <div class="settings-icon"><i class="fas fa-phone-alt"></i></div>
+                        <div style="flex:1">
+                            <label class="form-label">Nomor WhatsApp</label>
+                            <input type="text" id="inputWA" class="form-input" value="0822-7777-5595">
+                            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem">Digunakan untuk
+                                tombol "Pesan Sekarang" di website.</p>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <div style="flex:1">
+                            <label class="form-label">Alamat Toko</label>
+                            <textarea id="inputAddress" class="form-input" rows="2"
+                                style="resize:none">Jl. Gunung Salak Utara No.88 Block B-C-D, Denpasar</textarea>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;align-items:center;gap:1rem;padding-top:1.5rem">
+                        <p id="saveFeedback"
+                            style="font-size:0.8rem;color:var(--green);display:none;align-items:center;gap:0.4rem"><i
+                                class="fas fa-check"></i> Tersimpan</p>
+                        <button onclick="saveSettings()" class="btn-fire" style="width:auto;padding:0.75rem 2rem"><i
+                                class="fas fa-save"></i> Simpan</button>
+                    </div>
+                </div>
+
+                <!-- SQL Setup Box -->
+                <!-- SQL Setup Boxes -->
+                <div
+                    style="margin-top:1.5rem;background:var(--card-bg);border:1px solid var(--card-border);border-left:3px solid #60a5fa;padding:1.5rem">
+                    <p
+                        style="font-family:Oswald,sans-serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:#60a5fa;margin-bottom:0.75rem">
+                        <i class="fas fa-database" style="margin-right:0.4rem"></i>Setup Tabel Merk (Jalankan Satu Kali)
+                    </p>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem">Buka Supabase → SQL
+                        Editor → paste dan jalankan query berikut:</p>
+                    <pre
+                        style="background:#0D0D0D;border:1px solid var(--card-border);padding:1rem;font-size:0.78rem;color:#a3e635;overflow-x:auto;line-height:1.7">CREATE TABLE IF NOT EXISTS brands (
+  id   SERIAL PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read"    ON brands FOR SELECT USING (true);
+CREATE POLICY "auth_insert"    ON brands FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "auth_delete"    ON brands FOR DELETE USING (auth.role() = 'authenticated');</pre>
+                </div>
+
+                <div
+                    style="margin-top:1rem;background:var(--card-bg);border:1px solid var(--card-border);border-left:3px solid #f59e0b;padding:1.5rem">
+                    <p
+                        style="font-family:Oswald,sans-serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:#f59e0b;margin-bottom:0.75rem">
+                        <i class="fas fa-shield-alt" style="margin-right:0.4rem"></i>RLS Produk + Kolom Deskripsi
+                        (Jalankan Satu Kali)
+                    </p>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem">Amankan tabel produk dan
+                        tambahkan kolom deskripsi:</p>
+                    <pre
+                        style="background:#0D0D0D;border:1px solid var(--card-border);padding:1rem;font-size:0.78rem;color:#a3e635;overflow-x:auto;line-height:1.7">-- Tambah kolom deskripsi
+ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT;
+
+-- Aktifkan RLS
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read_products"  ON products FOR SELECT USING (true);
+CREATE POLICY "auth_insert_products"  ON products FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "auth_update_products"  ON products FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "auth_delete_products"  ON products FOR DELETE USING (auth.role() = 'authenticated');</pre>
+                </div>
+
+                <div
+                    style="margin-top:1rem;background:var(--card-bg);border:1px solid var(--card-border);border-left:3px solid #22c55e;padding:1.5rem">
+                    <p
+                        style="font-family:Oswald,sans-serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:#22c55e;margin-bottom:0.75rem">
+                        <i class="fas fa-cog" style="margin-right:0.4rem"></i>Setup Tabel Pengaturan (Jalankan Satu
+                        Kali)
+                    </p>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem">Untuk menyimpan
+                        pengaturan toko (nomor WA, alamat) ke database:</p>
+                    <pre
+                        style="background:#0D0D0D;border:1px solid var(--card-border);padding:1rem;font-size:0.78rem;color:#a3e635;overflow-x:auto;line-height:1.7">CREATE TABLE IF NOT EXISTS settings (
+  id    SERIAL PRIMARY KEY,
+  key   TEXT UNIQUE NOT NULL,
+  value TEXT NOT NULL
+);
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read_settings"  ON settings FOR SELECT USING (true);
+CREATE POLICY "auth_manage_settings"  ON settings FOR ALL USING (auth.role() = 'authenticated');
+
+-- Default values
+INSERT INTO settings (key, value) VALUES ('wa_number', '0822-7777-5595') ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('address', 'Jl. Gunung Salak Utara No.88 Block B-C-D, Denpasar') ON CONFLICT (key) DO NOTHING;</pre>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- PRODUCT MODAL -->
+    <div id="productModal" class="modal-overlay hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div class="modal-card p-6 relative" style="max-height:90vh;overflow-y:auto">
+            <button onclick="closeProductModal()"
+                style="position:absolute;top:1rem;right:1rem;background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;transition:color 0.2s"
+                onmouseover="this.style.color='var(--fire)'" onmouseout="this.style.color='var(--text-muted)'">
+                <i class="fas fa-times"></i>
+            </button>
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.75rem">
+                <div
+                    style="width:28px;height:28px;background:var(--fire);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 100%,6px 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <i class="fas fa-box text-white" style="font-size:0.7rem"></i>
+                </div>
+                <h3 class="modal-title" id="modalTitle">Tambah Produk</h3>
+            </div>
+            <input type="hidden" id="editId">
+            <form id="productForm" style="display:flex;flex-direction:column;gap:1.25rem">
+                <div>
+                    <label class="form-label">Nama Produk *</label>
+                    <input type="text" id="prodName" required class="form-input"
+                        placeholder="Contoh: Bor Listrik Makita 13mm">
+                </div>
+                <div>
+                    <label class="form-label">Deskripsi Produk</label>
+                    <textarea id="prodDesc" class="form-input" rows="3" style="resize:vertical"
+                        placeholder="Opsional — deskripsi atau spesifikasi produk"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                    <div>
+                        <label class="form-label">Merk *</label>
+                        <select id="prodBrand" required class="form-select">
+                            <option value="">— Pilih Merk —</option>
+                        </select>
+                        <p style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Tambah merk baru di menu
+                            Manajemen Merk</p>
+                    </div>
+                    <div>
+                        <label class="form-label">Harga *</label>
+                        <input type="text" id="prodPrice" required class="form-input" placeholder="Contoh: Rp 950.000">
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Foto Produk</label>
+                    <label for="prodFile" class="upload-zone flex flex-col items-center justify-center gap-2 py-6">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--text-muted)"></i>
+                        <span
+                            style="font-family:Oswald,sans-serif;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted)">Klik
+                            untuk upload</span>
+                        <span style="font-size:0.72rem;color:var(--text-dim)">JPG, PNG, WEBP</span>
+                        <input type="file" id="prodFile" accept="image/*" class="hidden">
+                    </label>
+                    <div id="imagePreview" class="hidden mt-3 items-center gap-3 p-3"
+                        style="background:rgba(255,255,255,0.03);border:1px solid var(--card-border)">
+                        <img id="previewImg" src="" alt="Preview"
+                            style="width:60px;height:60px;object-fit:cover;flex-shrink:0">
+                        <div>
+                            <p
+                                style="font-family:Oswald,sans-serif;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted)">
+                                Preview Foto</p>
+                            <p style="font-size:0.78rem;color:var(--text-primary)">Gambar siap diupload</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:0.75rem;justify-content:flex-end;padding-top:0.5rem">
+                    <button type="button" onclick="closeProductModal()" class="btn-ghost">Batal</button>
+                    <button type="submit" id="saveBtn" class="btn-fire" style="width:auto;padding:0.75rem 2rem">
+                        <span>Simpan Produk</span>
+                        <i id="btnLoader" class="fas fa-circle-notch fa-spin hidden"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ══════════════════════════════════════════════
+        // CONFIG
+        // ══════════════════════════════════════════════
+        const SB_URL = "https://vuxnsqyeobtxfynuvcyh.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1eG5zcXllb2J0eGZ5bnV2Y3loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDM0ODAsImV4cCI6MjA4NzY3OTQ4MH0.vL8OmoLAmgo_a5chnkCbS_DY-JYiYbYy8PZANUA38fc";
+        const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23222' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23555' font-family='sans-serif' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+        let supabaseClient;
+        let products = [];
+        let brands = [];
+        let selectedFile = null;
+        let currentImageURL = "";
+        let activeBrandFilter = 'all';
+
+        // ══════════════════════════════════════════════
+        // TOAST
+        // ══════════════════════════════════════════════
+        function showToast(msg, type = 'success') {
+            document.getElementById('toastMsg').textContent = msg;
+            document.getElementById('toastDot').style.background = type === 'success' ? 'var(--green)' : '#f87171';
+            const t = document.getElementById('toast');
+            t.classList.add('show');
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+        }
+
+        // ══════════════════════════════════════════════
+        // CUSTOM CONFIRM
+        // ══════════════════════════════════════════════
+        function showConfirm({ title = 'Konfirmasi Hapus', msg = 'Tindakan ini tidak dapat dibatalkan.' } = {}) {
+            return new Promise(resolve => {
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMsg').textContent = msg;
+                const modal = document.getElementById('confirmModal');
+                const ok = document.getElementById('confirmOk');
+                const cancel = document.getElementById('confirmCancel');
+                modal.classList.replace('hidden', 'flex');
+                const close = (val) => {
+                    modal.classList.replace('flex', 'hidden');
+                    ok.onclick = cancel.onclick = null;
+                    resolve(val);
+                };
+                ok.onclick = () => close(true);
+                cancel.onclick = () => close(false);
+                modal.onclick = (e) => { if (e.target === modal) close(false); };
+            });
+        }
+
+        // ══════════════════════════════════════════════
+        // SESSION CHECK — auto-login if session exists
+        // ══════════════════════════════════════════════
+        (async function checkSession() {
+            supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                document.getElementById('adminEmailDisplay').textContent = session.user.email;
+                const overlay = document.getElementById('loginOverlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 500);
+                const dash = document.getElementById('dashboardContent');
+                dash.classList.remove('opacity-0', 'pointer-events-none');
+                dash.style.opacity = '1';
+                await initDashboard();
+            }
+        })();
+
+        // ══════════════════════════════════════════════
+        // LOGIN
+        // ══════════════════════════════════════════════
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loginBtn = document.getElementById('loginBtn');
+            const loginLoader = document.getElementById('loginLoader');
+            const loginError = document.getElementById('loginError');
+            loginBtn.disabled = true;
+            loginLoader.classList.remove('hidden');
+            loginError.classList.add('hidden');
+            try {
+                supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: document.getElementById('adminEmail').value,
+                    password: document.getElementById('adminPass').value
+                });
+                if (error) throw error;
+                document.getElementById('adminEmailDisplay').textContent = data.user.email;
+                const overlay = document.getElementById('loginOverlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 500);
+                const dash = document.getElementById('dashboardContent');
+                dash.classList.remove('opacity-0', 'pointer-events-none');
+                dash.style.opacity = '1';
+                await initDashboard();
+            } catch (err) {
+                loginError.textContent = err.message;
+                loginError.classList.remove('hidden');
+            } finally {
+                loginBtn.disabled = false;
+                loginLoader.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            location.reload();
+        });
+
+        // ══════════════════════════════════════════════
+        // INIT — fetch products + brands + settings
+        // ══════════════════════════════════════════════
+        async function initDashboard() {
+            const [prodRes, brandRes] = await Promise.all([
+                supabaseClient.from('products').select('*').order('id', { ascending: false }),
+                supabaseClient.from('brands').select('*').order('name', { ascending: true })
+            ]);
+
+            products = prodRes.data || [];
+            brands = brandRes.data || [];
+
+            if (prodRes.error) console.error('Products:', prodRes.error);
+            if (brandRes.error) console.warn('Brands (buat tabel jika error):', brandRes.error.message);
+
+            document.getElementById('statTotal').textContent = products.length;
+            document.getElementById('statBrands').textContent = brands.length;
+
+            renderProductsTable(products);
+            renderBrandFilterPills();
+            renderBrandsList();
+            populateBrandSelect();
+            updateBrandStats();
+            await loadSettings();
+        }
+
+        // ══════════════════════════════════════════════
+        // SETTINGS — load + save to Supabase
+        // ══════════════════════════════════════════════
+        async function loadSettings() {
+            try {
+                const { data } = await supabaseClient.from('settings').select('*');
+                if (data) {
+                    data.forEach(s => {
+                        if (s.key === 'wa_number') {
+                            document.getElementById('inputWA').value = s.value;
+                            document.getElementById('displayWA').textContent = s.value;
+                        }
+                        if (s.key === 'address') {
+                            document.getElementById('inputAddress').value = s.value;
+                            document.getElementById('displayAddress').textContent = s.value;
+                        }
+                    });
+                }
+            } catch (e) { /* settings table may not exist yet */ }
+        }
+
+        // ══════════════════════════════════════════════
+        // IMAGE HELPERS
+        // ══════════════════════════════════════════════
+        function getStorageFilename(url) {
+            if (!url || !url.includes('product-images')) return null;
+            try {
+                const parts = url.split('/product-images/');
+                return parts[1] ? parts[1].split('?')[0] : null;
+            } catch (e) { return null; }
+        }
+
+        async function deleteStorageImage(url) {
+            const fname = getStorageFilename(url);
+            if (fname) {
+                try {
+                    await supabaseClient.storage.from('product-images').remove([fname]);
+                } catch (e) { console.warn('Could not delete old image:', e); }
+            }
+        }
+
+        // ══════════════════════════════════════════════
+        // PRODUCTS — render + filter
+        // ══════════════════════════════════════════════
+        function renderProductsTable(items) {
+            const tbody = document.getElementById('productTableBody');
+            document.getElementById('productCount').textContent = items.length
+                ? `Menampilkan ${items.length} produk`
+                : '';
+
+            if (!items.length) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2.5rem;color:var(--text-muted);font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase">Tidak ada produk ditemukan</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = items.map(p => `
+        <tr>
+            <td><img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name}" style="width:44px;height:44px;object-fit:cover;border:1px solid var(--card-border)" onerror="this.src='${PLACEHOLDER_IMG}'"></td>
+            <td style="font-weight:500;max-width:240px"><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}</span></td>
+            <td><span class="badge-brand">${p.brand || '—'}</span></td>
+            <td style="font-family:Oswald,sans-serif;color:var(--fire);font-size:0.9rem">${p.price}</td>
+            <td style="text-align:right;white-space:nowrap">
+                <button onclick="editProduct(${p.id})" class="table-action" style="color:var(--text-muted)" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='var(--text-muted)'"><i class="far fa-edit"></i></button>
+                <button onclick="deleteProduct(${p.id})" class="table-action" style="color:var(--text-muted)" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--text-muted)'"><i class="far fa-trash-alt"></i></button>
+            </td>
+        </tr>
+    `).join('');
+        }
+
+        function applyProductFilters() {
+            const q = (document.getElementById('searchInput').value || '').toLowerCase();
+            const filtered = products.filter(p => {
+                const matchSearch = !q || p.name.toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q);
+                const matchBrand = activeBrandFilter === 'all' || p.brand === activeBrandFilter;
+                return matchSearch && matchBrand;
+            });
+            renderProductsTable(filtered);
+        }
+
+        function renderBrandFilterPills() {
+            const container = document.getElementById('productBrandFilter');
+            const uniqueBrands = [...new Set(products.map(p => p.brand).filter(Boolean))].sort();
+            container.innerHTML = `<button class="filter-pill active" data-brand="all" onclick="selectBrandFilter(this)">Semua</button>`;
+            uniqueBrands.forEach(b => {
+                container.insertAdjacentHTML('beforeend',
+                    `<button class="filter-pill" data-brand="${b}" onclick="selectBrandFilter(this)">${b}</button>`);
+            });
+        }
+
+        window.selectBrandFilter = (btn) => {
+            document.querySelectorAll('#productBrandFilter .filter-pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeBrandFilter = btn.dataset.brand;
+            applyProductFilters();
+        };
+
+        // ══════════════════════════════════════════════
+        // BRANDS
+        // ══════════════════════════════════════════════
+        function updateBrandStats() {
+            document.getElementById('brandStatTotal').textContent = brands.length;
+            document.getElementById('brandStatProducts').textContent = products.length;
+        }
+
+        function renderBrandsList() {
+            const container = document.getElementById('brandsListContainer');
+            const q = (document.getElementById('brandSearchInput')?.value || '').toLowerCase();
+            const filtered = q ? brands.filter(b => b.name.toLowerCase().includes(q)) : brands;
+
+            if (!filtered.length) {
+                container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted);font-family:Oswald,sans-serif;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase">${brands.length === 0 ? 'Belum ada merk — tambah merk pertama!' : 'Tidak ada merk yang cocok.'}</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(b => {
+                const count = products.filter(p => p.brand === b.name).length;
+                const canDel = count === 0;
+                return `
+        <div class="brand-card">
+            <div style="display:flex;align-items:center;gap:0.75rem;min-width:0">
+                <div style="width:8px;height:8px;background:var(--fire);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);flex-shrink:0"></div>
+                <span style="font-family:Oswald,sans-serif;font-size:0.95rem;letter-spacing:0.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.name}">${b.name}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
+                <span class="brand-count-badge">${count} produk</span>
+                <button class="brand-delete-btn" onclick="deleteBrand(${b.id})"
+                    ${!canDel ? 'disabled' : ''}
+                    title="${canDel ? 'Hapus merk ini' : `Tidak bisa dihapus — ${count} produk masih pakai merk ini`}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>`;
+            }).join('');
+        }
+
+        window.addBrand = async () => {
+            const input = document.getElementById('newBrandInput');
+            const name = input.value.trim();
+            if (!name) { showToast('Nama merk tidak boleh kosong', 'error'); return; }
+            if (brands.some(b => b.name.toLowerCase() === name.toLowerCase())) {
+                showToast(`Merk "${name}" sudah ada!`, 'error'); return;
+            }
+            const { data, error } = await supabaseClient.from('brands').insert([{ name }]).select().single();
+            if (error) {
+                if (error.code === '42P01') showToast('Tabel "brands" belum dibuat. Jalankan SQL di halaman Pengaturan.', 'error');
+                else showToast('Gagal: ' + error.message, 'error');
+                return;
+            }
+            brands.push(data);
+            brands.sort((a, b) => a.name.localeCompare(b.name));
+            input.value = '';
+            renderBrandsList();
+            renderBrandFilterPills();
+            populateBrandSelect();
+            updateBrandStats();
+            document.getElementById('statBrands').textContent = brands.length;
+            showToast(`Merk "${data.name}" berhasil ditambahkan`);
+        };
+
+        window.deleteBrand = async (id) => {
+            const b = brands.find(x => x.id === id);
+            if (!b) return;
+            const name = b.name;
+            const productCount = products.filter(p => p.brand === name).length;
+            if (productCount > 0) {
+                showToast(`Tidak bisa hapus — ${productCount} produk masih menggunakan merk ini`, 'error');
+                return;
+            }
+            const ok = await showConfirm({
+                title: 'Hapus Merk',
+                msg: `Hapus merk "${name}" secara permanen dari database?`
+            });
+            if (!ok) return;
+            const { error } = await supabaseClient.from('brands').delete().eq('id', id);
+            if (error) { showToast('Gagal menghapus: ' + error.message, 'error'); return; }
+            brands = brands.filter(b => b.id !== id);
+            renderBrandsList();
+            renderBrandFilterPills();
+            populateBrandSelect();
+            updateBrandStats();
+            document.getElementById('statBrands').textContent = brands.length;
+            showToast(`Merk "${name}" berhasil dihapus`);
+        };
+
+        function populateBrandSelect() {
+            const sel = document.getElementById('prodBrand');
+            const prev = sel.value;
+            sel.innerHTML = '<option value="">— Pilih Merk —</option>';
+            brands.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.name;
+                opt.textContent = b.name;
+                sel.appendChild(opt);
+            });
+            if (prev && brands.some(b => b.name === prev)) sel.value = prev;
+        }
+
+        // ══════════════════════════════════════════════
+        // PRODUCT CRUD
+        // ══════════════════════════════════════════════
+        document.getElementById('prodFile').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > MAX_FILE_SIZE) {
+                showToast(`Ukuran file terlalu besar (maks ${MAX_FILE_SIZE / 1024 / 1024}MB)`, 'error');
+                e.target.value = '';
+                return;
+            }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('imagePreview').classList.replace('hidden', 'flex');
+                document.getElementById('previewImg').src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            document.getElementById('btnLoader').classList.remove('hidden');
+
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('prodName').value;
+            const brand = document.getElementById('prodBrand').value;
+            const price = document.getElementById('prodPrice').value;
+            const description = document.getElementById('prodDesc').value.trim();
+            let imageUrl = currentImageURL;
+
+            try {
+                if (selectedFile) {
+                    if (id && currentImageURL) {
+                        await deleteStorageImage(currentImageURL);
+                    }
+                    const ext = selectedFile.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+                    const fname = `${Date.now()}.${ext}`;
+                    const { error: upErr } = await supabaseClient.storage.from('product-images').upload(fname, selectedFile);
+                    if (upErr) throw upErr;
+                    const { data: urlData } = supabaseClient.storage.from('product-images').getPublicUrl(fname);
+                    imageUrl = urlData.publicUrl;
+                }
+                const payload = { name, brand, price, description: description || null, image: imageUrl || PLACEHOLDER_IMG };
+                if (id) {
+                    const { error } = await supabaseClient.from('products').update(payload).eq('id', id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabaseClient.from('products').insert([payload]);
+                    if (error) throw error;
+                }
+                closeProductModal();
+                await initDashboard();
+                showToast(id ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan');
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                document.getElementById('btnLoader').classList.add('hidden');
+            }
+        });
+
+        window.editProduct = (id) => {
+            const p = products.find(i => i.id === id);
+            if (!p) return;
+            document.getElementById('modalTitle').textContent = 'Edit Produk';
+            document.getElementById('editId').value = p.id;
+            document.getElementById('prodName').value = p.name;
+            document.getElementById('prodDesc').value = p.description || '';
+            document.getElementById('prodPrice').value = p.price;
+            currentImageURL = p.image; selectedFile = null;
+            populateBrandSelect();
+            document.getElementById('prodBrand').value = p.brand;
+            document.getElementById('previewImg').src = p.image || PLACEHOLDER_IMG;
+            const prev = document.getElementById('imagePreview');
+            prev.classList.remove('hidden');
+            prev.style.display = 'flex';
+            document.getElementById('productModal').classList.replace('hidden', 'flex');
+        };
+
+        window.deleteProduct = async (id) => {
+            const p = products.find(i => i.id === id);
+            const name = p ? p.name : 'produk ini';
+            const ok = await showConfirm({ title: 'Hapus Produk', msg: `Hapus "${name}" secara permanen dari database?` });
+            if (!ok) return;
+            if (p && p.image) {
+                await deleteStorageImage(p.image);
+            }
+            const { error } = await supabaseClient.from('products').delete().eq('id', id);
+            if (error) { showToast('Gagal menghapus: ' + error.message, 'error'); return; }
+            await initDashboard();
+            showToast(`"${name}" berhasil dihapus`);
+        };
+
+        // ══════════════════════════════════════════════
+        // MODAL HELPERS
+        // ══════════════════════════════════════════════
+        window.openProductModal = () => {
+            document.getElementById('modalTitle').textContent = 'Tambah Produk';
+            document.getElementById('editId').value = '';
+            document.getElementById('productForm').reset();
+            document.getElementById('prodDesc').value = '';
+            document.getElementById('imagePreview').classList.add('hidden');
+            selectedFile = null; currentImageURL = '';
+            populateBrandSelect();
+            document.getElementById('productModal').classList.replace('hidden', 'flex');
+        };
+        window.closeProductModal = () => document.getElementById('productModal').classList.replace('flex', 'hidden');
+        document.getElementById('productModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('productModal')) closeProductModal();
+        });
+
+        // ══════════════════════════════════════════════
+        // SIDEBAR NAV
+        // ══════════════════════════════════════════════
+        document.querySelectorAll('.sidebar-btn[data-view]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+                document.getElementById(btn.dataset.view).classList.add('active');
+                // Close sidebar on mobile after nav
+                if (window.innerWidth < 768) closeSidebar();
+            });
+        });
+
+        // ══════════════════════════════════════════════
+        // SETTINGS
+        // ══════════════════════════════════════════════
+        window.saveSettings = async () => {
+            const wa = document.getElementById('inputWA').value.trim();
+            const addr = document.getElementById('inputAddress').value.trim();
+            document.getElementById('displayWA').textContent = wa;
+            document.getElementById('displayAddress').textContent = addr;
+            try {
+                await Promise.all([
+                    supabaseClient.from('settings').upsert({ key: 'wa_number', value: wa }, { onConflict: 'key' }),
+                    supabaseClient.from('settings').upsert({ key: 'address', value: addr }, { onConflict: 'key' })
+                ]);
+                const fb = document.getElementById('saveFeedback');
+                fb.style.display = 'flex';
+                setTimeout(() => fb.style.display = 'none', 3000);
+                showToast('Pengaturan berhasil disimpan ke database');
+            } catch (e) {
+                showToast('Gagal menyimpan. Pastikan tabel "settings" sudah dibuat.', 'error');
+            }
+        };
+
+        // SIDEBAR TOGGLE (mobile)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const icon = document.getElementById('sidebarToggleIcon');
+            const isOpen = sidebar.classList.contains('open');
+            sidebar.classList.toggle('open', !isOpen);
+            backdrop.classList.toggle('open', !isOpen);
+            icon.className = isOpen ? 'fas fa-bars' : 'fas fa-times';
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarBackdrop').classList.remove('open');
+            document.getElementById('sidebarToggleIcon').className = 'fas fa-bars';
+        }
+    </script>
+</body>
+
+</html>
