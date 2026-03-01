@@ -14,6 +14,14 @@
     <meta property="og:locale" content="id_ID">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5QYQWWNDXE"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-5QYQWWNDXE');
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -591,6 +599,94 @@
         #mobileMenu {
             background: var(--ink);
         }
+
+        /* ── SEARCH INPUT ──────────────────────── */
+        .search-input {
+            background: white;
+            border: 2px solid #E8E4DF;
+            padding: 0.65rem 1rem 0.65rem 2.5rem;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.88rem;
+            color: var(--ink);
+            width: 100%;
+            max-width: 400px;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--fire);
+        }
+
+        .search-input::placeholder {
+            color: var(--mid);
+            font-size: 0.82rem;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--mid);
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+
+        /* ── WHATSAPP FLOAT ────────────────────── */
+        .wa-float {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 60px;
+            height: 60px;
+            background: #25D366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.7rem;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+            z-index: 999;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+        }
+
+        .wa-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(37, 211, 102, 0.55);
+        }
+
+        .wa-float::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #25D366;
+            animation: wa-pulse 2s ease-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes wa-pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
@@ -796,6 +892,18 @@
                 <!-- Brand Filters -->
                 <div class="flex flex-wrap gap-2" id="brandFilters">
                     <button data-brand="all" class="filter-pill active">Semua</button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div style="margin-bottom:1.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center">
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="productSearch" class="search-input"
+                        placeholder="Cari produk, merk, atau deskripsi..." autocomplete="off">
+                </div>
+                <div id="searchResultCount"
+                    style="font-size:0.78rem;color:var(--mid);font-family:Oswald,sans-serif;letter-spacing:0.1em;text-transform:uppercase">
                 </div>
             </div>
 
@@ -1162,8 +1270,78 @@
             window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
         };
 
+        // ── SEARCH FUNCTIONALITY ──────────────────
+        let searchTimeout;
+        document.getElementById('productSearch').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value.toLowerCase().trim();
+                const activeBrand = document.querySelector('.filter-pill.active')?.dataset.brand || 'all';
+
+                let base = activeBrand === 'all' ? allProducts : allProducts.filter(p => p.brand === activeBrand);
+
+                if (query) {
+                    filteredProducts = base.filter(p =>
+                        (p.name || '').toLowerCase().includes(query) ||
+                        (p.brand || '').toLowerCase().includes(query) ||
+                        (p.description || '').toLowerCase().includes(query)
+                    );
+                } else {
+                    filteredProducts = base;
+                }
+
+                displayedCount = 0;
+                renderProducts(filteredProducts);
+                updateSearchCount();
+            }, 250);
+        });
+
+        function updateSearchCount() {
+            const el = document.getElementById('searchResultCount');
+            const query = document.getElementById('productSearch').value.trim();
+            if (query) {
+                el.textContent = `${filteredProducts.length} produk ditemukan`;
+            } else {
+                el.textContent = '';
+            }
+        }
+
+        // Update filter pills to also respect search
+        const origRenderFilters = renderFilters;
+        renderFilters = function (items) {
+            origRenderFilters(items);
+            document.querySelectorAll('.filter-pill').forEach(btn => {
+                const origClick = btn.onclick;
+                btn.onclick = () => {
+                    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const sel = btn.dataset.brand;
+                    const query = document.getElementById('productSearch').value.toLowerCase().trim();
+                    let base = sel === 'all' ? allProducts : allProducts.filter(p => p.brand === sel);
+                    if (query) {
+                        filteredProducts = base.filter(p =>
+                            (p.name || '').toLowerCase().includes(query) ||
+                            (p.brand || '').toLowerCase().includes(query) ||
+                            (p.description || '').toLowerCase().includes(query)
+                        );
+                    } else {
+                        filteredProducts = base;
+                    }
+                    displayedCount = 0;
+                    renderProducts(filteredProducts);
+                    updateSearchCount();
+                };
+            });
+        };
+
         initSupabase();
     </script>
+
+    <!-- ════════ WHATSAPP FLOATING WIDGET ════════ -->
+    <a href="https://wa.me/6282277775595" target="_blank" class="wa-float" id="waFloat" data-wa-link
+        title="Chat via WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 </body>
 
 </html>
