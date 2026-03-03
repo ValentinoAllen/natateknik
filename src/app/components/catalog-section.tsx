@@ -220,11 +220,10 @@ function FilterPill({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`cursor-pointer border-2 px-5 py-2 text-[0.78rem] tracking-[0.08em] uppercase transition-all ${
-        active
+      className={`cursor-pointer border-2 px-5 py-2 text-[0.78rem] tracking-[0.08em] uppercase transition-all ${active
           ? "border-fire bg-fire text-white"
           : "border-[#D6D1CC] bg-transparent text-mid hover:border-fire hover:text-fire"
-      }`}
+        }`}
       style={{
         fontFamily: "var(--font-oswald)",
         clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%)",
@@ -316,22 +315,22 @@ function ProductDetailModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative max-h-[90vh] w-full max-w-[600px] overflow-y-auto border-2 border-[#E8E4DF] bg-white">
+      <div className="relative max-h-[90vh] w-full max-w-[850px] overflow-hidden border-2 border-[#E8E4DF] bg-white flex flex-col md:flex-row">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 cursor-pointer border-none bg-transparent text-mid transition-colors hover:text-fire"
+          className="absolute top-3 right-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-black/40 text-white transition-colors hover:bg-fire md:bg-transparent md:text-mid md: hover:text-fire"
           aria-label="Close detail"
         >
           <X className="h-5 w-5" />
         </button>
-        <div className="h-[300px] overflow-hidden bg-[#F0ECE8]">
+        <div className="flex-shrink-0 w-full md:w-[45%] h-[250px] md:h-auto bg-[#F0ECE8] p-6 flex items-center justify-center">
           <ImageWithFallback
             src={product.image || PLACEHOLDER_IMG}
             alt={product.name}
-            className="h-full w-full object-cover"
+            className="max-h-full max-w-full object-contain drop-shadow-sm"
           />
         </div>
-        <div className="px-8 pt-6 pb-8">
+        <div className="flex-1 px-6 md:px-8 py-6 md:py-8 overflow-y-auto flex flex-col">
           <div
             className="text-[0.65rem] tracking-[0.2em] uppercase text-fire"
             style={{ fontFamily: "var(--font-oswald)" }}
@@ -339,36 +338,40 @@ function ProductDetailModal({
             {product.brand}
           </div>
           <h3
-            className="mt-2 text-[1.3rem] uppercase text-ink"
-            style={{ fontFamily: "var(--font-oswald)", fontWeight: 500 }}
+            className="mt-2 text-[1.2rem] sm:text-[1.4rem] leading-[1.3] uppercase text-ink pr-6"
+            style={{ fontFamily: "var(--font-oswald)", fontWeight: 600 }}
           >
             {product.name}
           </h3>
           {product.description && (
-            <p className="mt-4 text-[0.9rem] leading-[1.7] text-mid">
-              {product.description}
-            </p>
+            <div className="mt-4 flex-1">
+              <p className="text-[0.85rem] sm:text-[0.92rem] leading-[1.7] text-mid whitespace-pre-wrap">
+                {product.description}
+              </p>
+            </div>
           )}
-          <div
-            className="mt-4 text-[1.4rem] text-ink"
-            style={{ fontFamily: "var(--font-oswald)", fontWeight: 700 }}
-          >
-            {product.price}
+          <div className="mt-6 border-t-2 border-[#E8E4DF] pt-6 shrink-0">
+            <div
+              className="text-[1.4rem] sm:text-[1.6rem] text-ink"
+              style={{ fontFamily: "var(--font-oswald)", fontWeight: 700 }}
+            >
+              {product.price}
+            </div>
+            <a
+              href={orderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 border-none bg-ink px-5 py-3 text-[0.8rem] tracking-[0.1em] uppercase text-white no-underline transition-colors hover:bg-fire"
+              style={{
+                fontFamily: "var(--font-oswald)",
+                clipPath:
+                  "polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%)",
+              }}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Pesan Sekarang
+            </a>
           </div>
-          <a
-            href={orderUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 border-none bg-ink px-5 py-3 text-[0.78rem] tracking-[0.1em] uppercase text-white no-underline transition-colors hover:bg-fire"
-            style={{
-              fontFamily: "var(--font-oswald)",
-              clipPath:
-                "polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%)",
-            }}
-          >
-            <MessageCircle className="h-4 w-4" />
-            Pesan Sekarang
-          </a>
         </div>
       </div>
     </div>
