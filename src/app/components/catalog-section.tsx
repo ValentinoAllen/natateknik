@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { ChevronDown, MessageCircle, X } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAppData, type Product } from "./data-provider";
-import { fetchPaginatedProducts } from "./api";
+import { fetchPaginatedProducts, sanitizeWhatsAppNumber } from "./api";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23F0ECE8' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%238A8480' font-family='sans-serif' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
@@ -30,7 +30,7 @@ export function CatalogSection() {
     categories,
     settings,
   } = useAppData();
-  const waNumber = settings.wa_number || "6282277775595";
+  const waNumber = sanitizeWhatsAppNumber(settings.wa_number || "6282277775595");
 
   const [activeBrand, setActiveBrand] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");

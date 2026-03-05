@@ -1,9 +1,10 @@
 import { MessageCircle } from "lucide-react";
 import { useAppData } from "./data-provider";
+import { sanitizeWhatsAppNumber } from "./api";
 
 export function WhatsAppFloat() {
   const { settings } = useAppData();
-  const waNumber = settings.wa_number || "6282277775595";
+  const waNumber = sanitizeWhatsAppNumber(settings.wa_number || "6282277775595");
 
   return (
     <a

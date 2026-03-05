@@ -1,5 +1,19 @@
 import { supabase } from "../../../utils/supabase/client";
 
+/**
+ * Sanitizes a phone number for WhatsApp links.
+ * 1. Removes all non-digit characters.
+ * 2. If it starts with '0', replaces it with '62' (Indonesia code).
+ */
+export function sanitizeWhatsAppNumber(num: string): string {
+  if (!num) return "";
+  let cleaned = num.replace(/\D/g, "");
+  if (cleaned.startsWith("0")) {
+    cleaned = "62" + cleaned.slice(1);
+  }
+  return cleaned;
+}
+
 export interface Product {
   id: number;
   name: string;
