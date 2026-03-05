@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 
 interface HorizontalScrollProps {
   children: React.ReactNode;
@@ -7,23 +7,12 @@ interface HorizontalScrollProps {
 export function HorizontalScroll({ children }: HorizontalScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeftState, setScrollLeftState] = useState(0);
 
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY !== 0) {
-        e.preventDefault();
-        e.stopPropagation();
-        el.scrollLeft += e.deltaY;
-      }
-    };
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, []);
+  // Use refs for drag state to avoid stale closures
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const [dragging, setDragging] = useState(false); // for CSS only
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
@@ -32,25 +21,76 @@ export function HorizontalScroll({ children }: HorizontalScrollProps) {
     setScrollProgress(maxScroll > 0 ? scrollLeft / maxScroll : 0);
   };
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeftState(scrollRef.current.scrollLeft);
+  // ── Mouse drag ──
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDragging.current = true;
+      setDragging(true);
+      startX.current = e.pageX;
+      scrollLeftStart.current = el.scrollLeft;
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      e.preventDefault();
+      const dx = e.pageX - startX.current;
+      el.scrollLeft = scrollLeftStart.current - dx;
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      setDragging(false);
+    };
+
+    el.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      el.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
   }, []);
 
-  const onMouseLeave = useCallback(() => setIsDragging(false), []);
-  const onMouseUp = useCallback(() => setIsDragging(false), []);
+  // ── Touch drag (for mobile pinch-and-drag) ──
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
 
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!isDragging || !scrollRef.current) return;
-      e.preventDefault();
-      const x = e.pageX - scrollRef.current.offsetLeft;
-      scrollRef.current.scrollLeft = scrollLeftState - (x - startX) * 2;
-    },
-    [isDragging, startX, scrollLeftState]
-  );
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      isDragging.current = true;
+      setDragging(true);
+      startX.current = e.touches[0].pageX;
+      scrollLeftStart.current = el.scrollLeft;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current || e.touches.length !== 1) return;
+      const dx = e.touches[0].pageX - startX.current;
+      el.scrollLeft = scrollLeftStart.current - dx;
+    };
+
+    const onTouchEnd = () => {
+      isDragging.current = false;
+      setDragging(false);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    el.addEventListener("touchend", onTouchEnd);
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, []);
 
   const thumbWidthPercent = 20;
   const maxTranslatePercent = 100 - thumbWidthPercent;
@@ -61,15 +101,10 @@ export function HorizontalScroll({ children }: HorizontalScrollProps) {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        onMouseDown={onMouseDown}
-        onMouseLeave={onMouseLeave}
-        onMouseUp={onMouseUp}
-        onMouseMove={onMouseMove}
-        className={`flex w-full gap-4 overflow-x-auto pb-4 ${
-          isDragging
+        className={`flex w-full gap-4 overflow-x-auto pb-4 ${dragging
             ? "cursor-grabbing select-none"
             : "cursor-grab snap-x snap-mandatory"
-        }`}
+          }`}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {children}
@@ -83,9 +118,8 @@ export function HorizontalScroll({ children }: HorizontalScrollProps) {
             className="absolute top-0 h-full rounded-full bg-mid/60 transition-transform duration-100 ease-out"
             style={{
               width: `${thumbWidthPercent}%`,
-              transform: `translateX(${
-                translatePercent / (thumbWidthPercent / 100)
-              }%)`,
+              transform: `translateX(${translatePercent / (thumbWidthPercent / 100)
+                }%)`,
             }}
           />
         </div>

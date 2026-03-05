@@ -1,10 +1,10 @@
-import { Award, Bike, MessageCircle, Wrench } from "lucide-react";
+import { Award, Tag, MessageCircle, ShieldCheck } from "lucide-react";
 
 const FEATURES = [
   { icon: Award, label: "Produk Original" },
-  { icon: Bike, label: "Antar Cepat Bali" },
-  { icon: MessageCircle, label: "Konsultasi WA" },
-  { icon: Wrench, label: "Stok Lengkap" },
+  { icon: Tag, label: "Harga Terbaik" },
+  { icon: MessageCircle, label: "Konsultasi Product" },
+  { icon: ShieldCheck, label: "Produk Bergaransi" },
 ] as const;
 
 export function FeaturesBar() {
