@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { ChevronDown, MessageCircle, X } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAppData, type Product } from "./data-provider";
+import { fetchPaginatedProducts } from "./api";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23F0ECE8' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%238A8480' font-family='sans-serif' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
@@ -25,11 +26,9 @@ function parsePrice(price: string): number {
 
 export function CatalogSection() {
   const {
-    products: allProducts,
     brands,
     categories,
     settings,
-    loading,
   } = useAppData();
   const waNumber = settings.wa_number || "6282277775595";
 
@@ -37,7 +36,12 @@ export function CatalogSection() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] = useState<SortKey>("terbaru");
   const [limit, setLimit] = useState(25);
-  const [displayedCount, setDisplayedCount] = useState(25);
+
+  const [page, setPage] = useState(1);
+  const [productItems, setProductItems] = useState<Product[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isFetching, setIsFetching] = useState(true);
+
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -47,53 +51,70 @@ export function CatalogSection() {
     [brands]
   );
 
-  // Filter & sort products
-  const filteredProducts = useMemo(() => {
-    let base = allProducts;
+  // Fetch paginated products from Supabase whenever filters or page change
+  useEffect(() => {
+    let cancelled = false;
+    setIsFetching(true);
 
-    // Filter by brand
-    if (activeBrand !== "all") {
-      base = base.filter((p) => p.brand === activeBrand);
-    }
+    fetchPaginatedProducts({
+      page,
+      limit,
+      brand: activeBrand,
+      category: activeCategory,
+      sortBy
+    })
+      .then(({ data, count }) => {
+        if (cancelled) return;
+        if (page === 1) {
+          setProductItems(data);
+        } else {
+          setProductItems(prev => [...prev, ...data]);
+        }
+        setTotalCount(count);
+        setIsFetching(false);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error(err);
+        setIsFetching(false);
+      });
 
-    // Filter by category
-    if (activeCategory !== "all") {
-      base = base.filter((p) => p.category === activeCategory);
-    }
+    return () => { cancelled = true; };
+  }, [activeBrand, activeCategory, sortBy, limit, page]);
 
-    // Sort
-    if (sortBy === "termurah") {
-      base = [...base].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
-    } else if (sortBy === "termahal") {
-      base = [...base].sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
-    }
-    // "terbaru" = default order from DB (newest first by id desc)
-
-    return base;
-  }, [allProducts, activeBrand, activeCategory, sortBy]);
-
-  const visibleProducts = filteredProducts.slice(0, displayedCount);
-  const remaining = filteredProducts.length - displayedCount;
+  const remaining = totalCount - productItems.length;
 
   const handleBrandFilter = (brand: string) => {
-    setActiveBrand(brand);
-    setDisplayedCount(limit);
+    if (brand !== activeBrand) {
+      setActiveBrand(brand);
+      setProductItems([]); // Clear UI immediately for better UX
+      setPage(1);
+    }
     setSidebarOpen(false);
   };
 
   const handleCategoryFilter = (cat: string) => {
-    setActiveCategory(cat);
-    setDisplayedCount(limit);
+    if (cat !== activeCategory) {
+      setActiveCategory(cat);
+      setProductItems([]);
+      setPage(1);
+    }
   };
 
   const handleSortChange = (val: SortKey) => {
-    setSortBy(val);
-    setDisplayedCount(limit);
+    if (val !== sortBy) {
+      setSortBy(val);
+      setProductItems([]);
+      setPage(1);
+    }
   };
 
   const handleLimitChange = (val: number) => {
-    setLimit(val);
-    setDisplayedCount(val);
+    if (val !== limit) {
+      setLimit(val);
+      setProductItems([]);
+      setPage(1);
+    }
   };
 
   const getOrderUrl = useCallback(
@@ -162,7 +183,7 @@ export function CatalogSection() {
                     className="text-sm text-mid"
                     style={{ fontFamily: "var(--font-oswald)" }}
                   >
-                    {allProducts.length}
+                    {totalCount}
                   </span>
                 </div>
 
@@ -276,18 +297,18 @@ export function CatalogSection() {
               </div>
 
               {/* Product Grid */}
-              <div className="grid min-h-[400px] grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {loading ? (
+              <div className="grid min-h-[400px] grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {isFetching && page === 1 ? (
                   Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="animate-pulse border border-[#E8E4DF] bg-white rounded-lg overflow-hidden">
-                      <div className="h-[180px] bg-[#F0ECE8]" />
-                      <div className="p-4">
-                        <div className="mb-2 h-4 w-3/4 rounded bg-[#E8E4DF]" />
-                        <div className="h-5 w-1/2 rounded bg-[#E8E4DF]" />
+                    <div key={i} className="animate-pulse border border-[#E8E4DF] bg-white rounded-md overflow-hidden flex flex-col">
+                      <div className="h-[100px] sm:h-[180px] bg-[#F0ECE8] shrink-0" />
+                      <div className="p-1.5 sm:p-4 flex flex-col flex-1 justify-between gap-1 sm:gap-4">
+                        <div className="h-3 sm:h-5 w-3/4 rounded bg-[#E8E4DF]" />
+                        <div className="h-3 sm:h-6 w-1/2 rounded bg-[#E8E4DF] mt-auto" />
                       </div>
                     </div>
                   ))
-                ) : visibleProducts.length === 0 ? (
+                ) : productItems.length === 0 ? (
                   <div
                     className="col-span-full py-20 text-center text-sm tracking-wider uppercase text-mid"
                     style={{ fontFamily: "var(--font-oswald)" }}
@@ -295,9 +316,10 @@ export function CatalogSection() {
                     Belum ada produk tersedia
                   </div>
                 ) : (
-                  visibleProducts.map((p) => (
+                  productItems.map((p) => (
                     <ProductCard
-                      key={p.id}
+                      // we use p.id + index as key in case of rare duplicate IDs from dirty sorts
+                      key={`${p.id}-${p.name}`}
                       product={p}
                       onDetail={() => setDetailProduct(p)}
                       onOrderUrl={getOrderUrl(p.name)}
@@ -310,14 +332,13 @@ export function CatalogSection() {
               {remaining > 0 && (
                 <div className="mt-8 flex justify-center">
                   <button
-                    onClick={() =>
-                      setDisplayedCount((prev) => prev + limit)
-                    }
-                    className="bg-fire px-6 py-2.5 text-sm tracking-wider uppercase text-white transition-all hover:bg-fire-dark rounded"
+                    onClick={() => setPage((prev) => prev + 1)}
+                    disabled={isFetching}
+                    className="bg-fire px-6 py-2.5 text-sm tracking-wider uppercase text-white transition-all hover:bg-fire-dark rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ fontFamily: "var(--font-oswald)" }}
                   >
-                    <ChevronDown className="mr-2 inline-block h-4 w-4" />
-                    Muat Lebih Banyak ({remaining})
+                    <ChevronDown className={`mr-2 inline-block h-4 w-4 ${isFetching ? 'animate-bounce' : ''}`} />
+                    {isFetching ? 'Memuat...' : `Muat Lebih Banyak (${remaining})`}
                   </button>
                 </div>
               )}
@@ -352,8 +373,8 @@ function BrandItem({
     <button
       onClick={onClick}
       className={`w-full text-left px-4 py-2.5 text-sm transition-colors border-l-4 cursor-pointer ${active
-          ? "border-l-fire bg-fire/10 text-fire font-semibold"
-          : "border-l-transparent text-ink/70 hover:bg-[#F5F2EE] hover:text-ink"
+        ? "border-l-fire bg-fire/10 text-fire font-semibold"
+        : "border-l-transparent text-ink/70 hover:bg-[#F5F2EE] hover:text-ink"
         }`}
       style={{ fontFamily: "var(--font-dm-sans)" }}
     >
@@ -380,24 +401,25 @@ function ProductCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onDetail();
       }}
-      className="group relative cursor-pointer overflow-hidden rounded-lg border border-[#E8E4DF] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      className="group relative cursor-pointer overflow-hidden rounded-md border border-[#E8E4DF] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col"
     >
-      <div className="h-[180px] overflow-hidden bg-[#F0ECE8]">
+      <div className="h-[100px] sm:h-[180px] overflow-hidden bg-[#F0ECE8] shrink-0">
         <ImageWithFallback
           src={product.image || PLACEHOLDER_IMG}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 px-1 pt-1"
         />
       </div>
-      <div className="p-4">
+      <div className="p-1.5 sm:p-4 flex flex-col flex-1 justify-between">
         <h3
-          className="mb-2 line-clamp-2 text-sm leading-snug text-ink"
+          className="mb-0.5 sm:mb-2 line-clamp-2 text-[10px] sm:text-sm leading-tight text-ink"
           style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 500 }}
+          title={product.name}
         >
           {product.name}
         </h3>
         <div
-          className="text-lg text-ink"
+          className="text-xs sm:text-lg text-ink mt-auto"
           style={{ fontFamily: "var(--font-oswald)", fontWeight: 700 }}
         >
           {product.price}

@@ -145,20 +145,20 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    font-size: var(--font-size);
+    overflow-x: hidden;
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-dm-sans);
     scroll-behavior: smooth;
     overflow-x: hidden;
-  }
-
-  h1, h2, h3 {
-    font-family: var(--font-oswald);
-    letter-spacing: 0.02em;
-  }
-
-  html {
-    font-size: var(--font-size);
+    overscroll-behavior-x: none;
+    width: 100%;
+    position: relative;
   }
 
   h1 {

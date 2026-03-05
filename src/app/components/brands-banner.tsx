@@ -52,7 +52,7 @@ export function BrandsBanner() {
                   {brand.image ? (
                     <ImageWithFallback
                       src={brand.image}
-                      alt={brand.name}
+                      alt={`Logo ${brand.name} Alat Teknik Denpasar`}
                       className="h-full w-full object-contain"
                     />
                   ) : (

@@ -9,6 +9,7 @@ import { CatalogSection } from "./catalog-section";
 import { WhyUs } from "./why-us";
 import { Footer } from "./footer";
 import { WhatsAppFloat } from "./whatsapp-float";
+import { CatalogSlider } from "./catalog-slider";
 
 export function MainSite() {
   return (
@@ -81,6 +82,7 @@ export function MainSite() {
       {/* ── Remaining content: normal scroll ── */}
       <div className="bg-paper">
         <MediaShowcase />
+        <CatalogSlider />
         <CatalogSection />
       </div>
 

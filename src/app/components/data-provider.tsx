@@ -69,10 +69,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async function load() {
       try {
         const [products, brands, categories, settings, media] = await Promise.all([
-          fetchProducts().catch((err) => {
-            console.error("Failed to fetch products:", err);
-            return [] as Product[];
-          }),
+          Promise.resolve([] as Product[]), // We now fetch products directly in CatalogSection for pagination
           fetchBrands().catch((err) => {
             console.error("Failed to fetch brands:", err);
             return [] as Brand[];

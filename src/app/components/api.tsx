@@ -14,6 +14,7 @@ export interface Brand {
   id: number;
   name: string;
   image: string;
+  catalog_url?: string;
 }
 
 export interface Category {
@@ -37,6 +38,67 @@ export async function fetchProducts(): Promise<Product[]> {
   const { data, error } = await supabase.from("products").select("*").order("id", { ascending: false });
   if (error) throw new Error(error.message);
   return data || [];
+}
+
+export interface FetchProductsOptions {
+  page?: number;     // 1-indexed
+  limit?: number;    // items per page
+  brand?: string;    // "all" or specific brand
+  category?: string; // "all" or specific category
+  sortBy?: "terbaru" | "termurah" | "termahal";
+}
+
+export async function fetchPaginatedProducts(options: FetchProductsOptions = {}): Promise<{ data: Product[]; count: number }> {
+  let query = supabase.from("products").select("*", { count: "exact" });
+
+  if (options.brand && options.brand !== "all") {
+    query = query.eq("brand", options.brand);
+  }
+
+  if (options.category && options.category !== "all") {
+    query = query.eq("category", options.category);
+  }
+
+  // Handle price sorting natively isn't perfect since price is stored as string like "Rp 205.000",
+  // meaning DB alphanumeric sort will fail (`"Rp 1.000.000"` vs `"Rp 205.000"`).
+  // Ideally, price should be stored as numeric in Postgres to sort reliably on the DB level.
+  // Because it is TEXT, we either fetch ALL and sort client-side, OR we add a numeric `price_num` column.
+  // Let's implement basic ID sorting for "terbaru", and fallback to client-sort for prices if needed.
+
+  if (options.sortBy === "terbaru" || !options.sortBy) {
+    query = query.order("id", { ascending: false });
+  }
+
+  // Pagination (0-indexed for .range)
+  if (options.page !== undefined && options.limit !== undefined) {
+    const start = (options.page - 1) * options.limit;
+    const end = start + options.limit - 1;
+    query = query.range(start, end);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) throw new Error(error.message);
+
+  let results = data as Product[];
+
+  // If sorting by price, we do it in-memory for the current chunk. 
+  // (NOTE: true DB string-to-number cast sorting requires a PostgreSQL view or function)
+  if (options.sortBy === "termurah" || options.sortBy === "termahal") {
+    const parsePrice = (priceStr: string) => {
+      if (!priceStr) return 0;
+      return parseInt(priceStr.replace(/[^0-9]/g, ""), 10) || 0;
+    };
+    results.sort((a, b) => {
+      if (options.sortBy === "termurah") {
+        return parsePrice(a.price) - parsePrice(b.price);
+      } else {
+        return parsePrice(b.price) - parsePrice(a.price);
+      }
+    });
+  }
+
+  return { data: results || [], count: count || 0 };
 }
 
 export async function fetchBrands(): Promise<Brand[]> {
@@ -119,6 +181,18 @@ export async function updateBrand(id: number, brand: Partial<Brand>, token: stri
 export async function deleteBrand(id: number, token: string): Promise<void> {
   const { error } = await supabase.from("brands").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+export async function uploadBrandCatalog(file: File, token: string): Promise<string> {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `catalog-${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const filePath = `catalogs/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file);
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data } = supabase.storage.from('media').getPublicUrl(filePath);
+  return data.publicUrl;
 }
 
 // Categories CRUD

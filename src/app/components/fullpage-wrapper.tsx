@@ -17,6 +17,16 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
   const innerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
 
+  // Track if we are on a mobile device (width < 1024px)
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile(); // Check on mount
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   // ── scroll to section 1 (Features) ──
   const goToSection1 = useCallback(() => {
     if (isAnimating.current || !locked) return;
@@ -29,7 +39,7 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
 
   // ── scroll back to section 0 (Hero) ──
   const goToSection0 = useCallback(() => {
-    if (isAnimating.current || locked) return;
+    if (isAnimating.current || locked || isMobile) return;
     isAnimating.current = true;
     setLocked(true);
     // scroll the page back to top so the wrapper is fully in view
@@ -37,10 +47,12 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
     setTimeout(() => {
       isAnimating.current = false;
     }, 1000);
-  }, [locked]);
+  }, [locked, isMobile]);
 
   // ── Wheel handler (only active while wrapper is in viewport) ──
   useEffect(() => {
+    if (isMobile) return; // Disable scroll hijack entirely on mobile
+
     const handleWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (isAnimating.current) {
@@ -73,6 +85,8 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
 
   // ── Touch handling ──
   useEffect(() => {
+    if (isMobile) return;
+
     const handleTouchMove = (e: TouchEvent) => {
       if (locked) {
         // prevent native scroll while on hero
@@ -81,13 +95,15 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
     };
     document.addEventListener("touchmove", handleTouchMove, { passive: false });
     return () => document.removeEventListener("touchmove", handleTouchMove);
-  }, [locked]);
+  }, [locked, isMobile]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isMobile) return;
     touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isMobile) return;
     const dist = touchStartY.current - e.changedTouches[0].clientY;
     if (Math.abs(dist) < 50) return;
     if (dist > 0 && locked) goToSection1();
@@ -96,6 +112,8 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
 
   // ── Keyboard ──
   useEffect(() => {
+    if (isMobile) return;
+
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown" || e.key === "PageDown") {
         if (locked) {
@@ -111,10 +129,15 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [locked, goToSection0, goToSection1]);
+  }, [locked, goToSection0, goToSection1, isMobile]);
 
   // When locked (hero visible), prevent body scroll
   useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = "";
+      return;
+    }
+
     if (locked) {
       document.body.style.overflow = "hidden";
     } else {
@@ -123,7 +146,17 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [locked]);
+  }, [locked, isMobile]);
+
+  if (isMobile) {
+    // Mobile Render: Plain stacking without complex wrapper constraints
+    return (
+      <div className="w-full">
+        {children[0]}
+        {children[1]}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -157,11 +190,10 @@ export function FullpageWrapper({ children }: FullpageWrapperProps) {
           <button
             key={i}
             onClick={() => (i === 0 ? goToSection0() : goToSection1())}
-            className={`h-3 w-3 rounded-full transition-all duration-300 ${
-              (locked ? 0 : 1) === i
+            className={`h-3 w-3 rounded-full transition-all duration-300 ${(locked ? 0 : 1) === i
                 ? "scale-125 bg-fire"
                 : "bg-ink/20 hover:bg-ink/50"
-            }`}
+              }`}
             aria-label={`Go to section ${i + 1}`}
           />
         ))}

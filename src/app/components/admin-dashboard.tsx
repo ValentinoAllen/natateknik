@@ -48,6 +48,7 @@ import {
   deleteCategory as apiDeleteCategory,
   updateSettings as apiUpdateSettings,
   uploadProductImage,
+  uploadBrandCatalog,
   type MediaItem,
   type Product,
   type Brand,
@@ -838,7 +839,14 @@ function BrandsPage({ brands, setBrands, token, showToast, loading }: {
                   </span>
                 )}
               </div>
-              <h4 className="truncate text-center text-sm text-white" style={{ ...osw, fontWeight: 500 }}>{b.name}</h4>
+              <h4 className="flex items-center justify-center gap-1 truncate text-center text-sm text-white" style={{ ...osw, fontWeight: 500 }}>
+                {b.name}
+                {b.catalog_url && (
+                  <span className="rounded bg-fire/20 px-1 py-0.5 text-[0.6rem] text-fire" title="Katalog PDF tersedia">
+                    PDF
+                  </span>
+                )}
+              </h4>
               <div className="absolute inset-0 flex items-center justify-center gap-2 rounded bg-black/0 opacity-0 transition-all group-hover:bg-black/50 group-hover:opacity-100">
                 <button onClick={() => { setEditing(b); setShowForm(true); }}
                   className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white hover:bg-fire">
@@ -856,21 +864,24 @@ function BrandsPage({ brands, setBrands, token, showToast, loading }: {
 
       {showForm && (
         <BrandFormModal brand={editing} busy={busy} onSave={handleSave}
-          onClose={() => { setShowForm(false); setEditing(null); }} />
+          onClose={() => { setShowForm(false); setEditing(null); }} token={token} />
       )}
     </div>
   );
 }
 
-function BrandFormModal({ brand, busy, onSave, onClose }: {
-  brand: Brand | null; busy: boolean; onSave: (d: Omit<Brand, "id">) => void; onClose: () => void;
+function BrandFormModal({ brand, busy, onSave, onClose, token }: {
+  brand: Brand | null; busy: boolean; onSave: (d: Omit<Brand, "id">) => void; onClose: () => void; token: string;
 }) {
   const [name, setName] = useState(brand?.name || "");
   const [file, setFile] = useState<File | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [preview, setPreview] = useState(brand?.image || "");
+  const [pdfUrl, setPdfUrl] = useState(brand?.catalog_url || "");
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
     setFile(f);
@@ -879,25 +890,45 @@ function BrandFormModal({ brand, busy, onSave, onClose }: {
     reader.readAsDataURL(f);
   };
 
+  const handlePdfFile = (f: File) => {
+    if (f.type !== "application/pdf") {
+      alert("Hanya file PDF yang diperbolehkan.");
+      return;
+    }
+    setPdfFile(f);
+    setPdfUrl(""); // Clear the existing URL since we're replacing it with a fresh file
+  };
+
   const handleSaveClick = async () => {
     if (!name) return;
     setUploading(true);
     let imageUrl = brand?.image || "";
+    let finalPdfUrl = pdfUrl;
 
-    if (file) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `brand-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `brands/${fileName}`;
+    try {
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `brand-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `brands/${fileName}`;
 
-      const { error } = await supabase.storage.from('media').upload(filePath, file);
-      if (!error) {
-        const { data } = supabase.storage.from('media').getPublicUrl(filePath);
-        imageUrl = data.publicUrl;
+        const { error } = await supabase.storage.from('media').upload(filePath, file);
+        if (!error) {
+          const { data } = supabase.storage.from('media').getPublicUrl(filePath);
+          imageUrl = data.publicUrl;
+        }
       }
-    }
 
-    await onSave({ name, image: imageUrl });
-    setUploading(false);
+      if (pdfFile) {
+        finalPdfUrl = await uploadBrandCatalog(pdfFile, token);
+      }
+
+      await onSave({ name, image: imageUrl, catalog_url: finalPdfUrl });
+    } catch (err: any) {
+      console.error("Upload failed", err);
+      alert("Terjadi kesalahan saat mengunggah file. " + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -933,6 +964,39 @@ function BrandFormModal({ brand, busy, onSave, onClose }: {
                   <X className="h-3 w-3" />
                 </button>
               </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[0.65rem] tracking-widest uppercase text-white/40">Katalog PDF (Opsional)</label>
+            <div className="flex items-center gap-3">
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfFile(f); }}
+              />
+              <button
+                onClick={() => pdfInputRef.current?.click()}
+                className="flex cursor-pointer items-center gap-2 rounded border border-white/15 bg-white/5 px-3 py-2 text-xs text-white transition-colors hover:bg-white/10"
+              >
+                <Upload className="h-3.5 w-3.5" /> Pilih PDF
+              </button>
+              <div className="flex-1 truncate text-xs text-white/60">
+                {pdfFile ? pdfFile.name : pdfUrl ? "Katalog Tersimpan. (Pilih untuk mengganti)" : "Belum ada file PDF."}
+              </div>
+              {(pdfFile || pdfUrl) && (
+                <button onClick={() => { setPdfFile(null); setPdfUrl(""); }}
+                  className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-red-500/80 hover:text-white">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {pdfUrl && !pdfFile && (
+              <a href={pdfUrl} target="_blank" rel="noreferrer" className="mt-2 block text-[0.65rem] text-fire underline hover:text-fire-dark">
+                Lihat PDF Tersimpan
+              </a>
             )}
           </div>
         </div>
