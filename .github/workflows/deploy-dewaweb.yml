@@ -1,0 +1,46 @@
+name: Deploy to Dewaweb via FTP
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  web-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout the repository
+      - name: Get latest code
+        uses: actions/checkout@v4
+      
+      # 2. Setup Node environment
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      # 4. Install dependencies
+      - name: Install Dependencies
+        run: pnpm install
+
+      # 5. Build the React/Vite app
+      - name: Build Project
+        run: pnpm run build
+        
+      # 6. Deploy via FTP to Dewaweb
+      - name: Sync files to Dewaweb
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: /public_html/ # This maps to the public_html folder in cPanel. Change to / if your FTP user is created specifically inside public_html
