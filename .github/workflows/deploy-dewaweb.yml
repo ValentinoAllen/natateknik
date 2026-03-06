@@ -42,7 +42,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps       # Explicitly use FTPS
-          port: 21             # Explicitly define port 21
+          protocol: ftp        # Reverting to standard FTP to bypass passive TLS port blocks
+          port: 21
           local-dir: ./dist/
-          server-dir: /        # Root directory of the dedicated FTP user
+          server-dir: /
